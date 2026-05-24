@@ -1,0 +1,34 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🚀 Running pre-push checks..."
+
+# Step 1: Run ESLint on all files
+echo "🔎 Running ESLint..."
+npm run lint || {
+  echo "❌ ESLint check failed. Please fix the errors before pushing."
+  exit 1
+}
+
+# Step 2: Format code with Prettier
+echo "💅 Formatting code with Prettier..."
+npm run format || {
+  echo "❌ Prettier formatting failed. Please fix the errors before pushing."
+  exit 1
+}
+
+# Step 3: Run TypeScript type checking
+echo "📘 Checking TypeScript types..."
+npm run type-check || {
+  echo "❌ TypeScript type check failed. Please fix the errors before pushing."
+  exit 1
+}
+
+# Step 4: Run build to ensure everything compiles
+echo "🏗️  Running build check..."
+npm run build || {
+  echo "❌ Build failed. Please fix the errors before pushing."
+  exit 1
+}
+
+echo "✅ All pre-push checks passed!"

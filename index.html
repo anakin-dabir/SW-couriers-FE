@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Security Headers -->
+    <!-- Note: frame-ancestors and X-Frame-Options must be set via HTTP headers, not meta tags -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <!-- Braintree + PayPal + Cardinal 3DS (Songbird); dev API (localhost); optional fonts -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.braintreegateway.com https://cas.static.client.cardinaltrusted.com https://static.client.cardinaltrusted.com https://songbird.cardinalcommerce.com https://songbirdstag.cardinalcommerce.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://assets.braintreegateway.com https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https: http://127.0.0.1:* http://localhost:* https://*.braintreegateway.com https://*.braintree-api.com https://*.paypal.com https://*.cardinalcommerce.com https://*.cardinaltrusted.com; frame-src 'self' https://assets.braintreegateway.com https://js.braintreegateway.com https://*.braintreegateway.com https://*.braintree-api.com https://*.paypal.com https://checkout.paypal.com https://*.cardinalcommerce.com https://*.cardinaltrusted.com;"
+    />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    
+    <!-- Performance -->
+    <meta name="theme-color" content="#007bff" />
+    
+    <title>SW Couriers</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- Global error handler - must run before any other scripts -->
+    <script>
+      // Suppress Chrome extension errors immediately
+      (function() {
+        'use strict';
+        
+        // Helper to check if error is from extension
+        function isExtensionError(error) {
+          if (!error) return false;
+          const message = error.message || error.toString() || '';
+          const stack = error.stack || '';
+          const fullError = (message + ' ' + stack).toLowerCase();
+          return (
+            fullError.includes('message channel closed') ||
+            fullError.includes('extension context invalidated') ||
+            fullError.includes('receiving end does not exist') ||
+            fullError.includes('asynchronous response') ||
+            fullError.includes('listener indicated') ||
+            fullError.includes('a listener indicated an asynchronous response') ||
+            fullError.includes('message channel closed before a response') ||
+            stack.includes('chrome-extension://') ||
+            stack.includes('moz-extension://') ||
+            stack.includes('safari-extension://')
+          );
+        }
+
+        // Handle unhandled promise rejections - use capture phase to catch early
+        window.addEventListener('unhandledrejection', function(event) {
+          const reason = event.reason;
+          if (isExtensionError(reason)) {
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            return false;
+          }
+        }, true); // Use capture phase
+
+        // Handle synchronous errors - use capture phase to catch early
+        window.addEventListener('error', function(event) {
+          if (isExtensionError(event.error)) {
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            return false;
+          }
+        }, true); // Use capture phase
+
+        // Override console.error to filter extension errors
+        const originalConsoleError = console.error;
+        console.error = function() {
+          const args = Array.prototype.slice.call(arguments);
+          const errorString = args.map(function(arg) {
+            if (arg && typeof arg === 'object') {
+              return (arg.message || arg.toString() || '') + ' ' + (arg.stack || '');
+            }
+            return String(arg || '');
+          }).join(' ').toLowerCase();
+          
+          const isExtError = 
+            errorString.includes('message channel closed') ||
+            errorString.includes('extension context invalidated') ||
+            errorString.includes('asynchronous response') ||
+            errorString.includes('listener indicated') ||
+            errorString.includes('a listener indicated an asynchronous response') ||
+            errorString.includes('message channel closed before a response');
+          
+          if (!isExtError) {
+            originalConsoleError.apply(console, args);
+          }
+        };
+      })();
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

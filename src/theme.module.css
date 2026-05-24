@@ -1,0 +1,317 @@
+@theme {
+  /* ============================================
+     TYPOGRAPHY
+     ============================================ */
+
+  /* Custom Font Families */
+  --font-neue: 'Neue Haas Grotesk Display Pro', system-ui, -apple-system, sans-serif;
+  --font-apfel: 'Apfel Grotezk', system-ui, -apple-system, sans-serif;
+  --font-jetbrains: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  --font-averta: 'Averta Demo PE Cutted Demo', system-ui, -apple-system, sans-serif;
+  --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Font Family Tokens for Tailwind (v4 uses --font-* directly) */
+  --font-family-neue: var(--font-neue);
+  --font-family-apfel: var(--font-apfel);
+  --font-family-jetbrains: var(--font-jetbrains);
+  --font-family-averta: var(--font-averta);
+  --font-family-inter: var(--font-inter);
+
+  /* Font Weight Tokens */
+  --font-weight-normal: 400;
+
+  /* Custom Font Sizes */
+  --font-size-2xs: 0.625rem; /* 10px */
+
+  /* ============================================
+     CUSTOM SPACING (for Figma design precision)
+     ============================================ */
+
+  --spacing-4-5: 1.125rem; /* 18px */
+  --spacing-7-5: 1.875rem; /* 30px */
+  --spacing-10-5: 2.625rem; /* 42px */
+  --spacing-110: 27.5rem; /* 440px */
+  --min-height-map-mobile: 31.25rem; /* 500px */
+  --min-height-map-desktop: 25rem; /* 600px */
+
+  /* ============================================
+     CUSTOM LINE HEIGHT
+     ============================================ */
+
+  --line-height-3-5: 0.875rem; /* 14px */
+  --line-height-4-5: 1.125rem; /* 18px */
+
+  /* ============================================
+     BORDER RADIUS
+     ============================================ */
+
+  --radius: 0.5rem;
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  /* ============================================
+     COLORS - PRIMARY
+     ============================================ */
+
+  /* Primary Colors — brand red #AE2224 */
+  --color-primary-50: #f9ebeb;
+  --color-primary-100: #f0c5c6;
+  --color-primary-200: #e39a9b;
+  --color-primary-300: #d66e70;
+  --color-primary-400: #c94a4c;
+  --color-primary-500: #ae2224;
+  --color-primary-600: #8e1c1e;
+  --color-primary-700: #6e1618;
+  --color-primary-800: #4f1011;
+  --color-primary-900: #2f0a0b;
+  --color-primary-950: #180505;
+  /* Base primary color for bg-primary, text-primary utilities */
+  --color-primary: var(--color-primary-500);
+
+  /* ============================================
+     COLORS - GRAY SCALE
+     ============================================ */
+
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-550: #5a5a5a;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  --color-gray-950: #030712;
+
+  /* ============================================
+     COLORS - SEMANTIC
+     ============================================ */
+
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-off-white: #f1f1f1;
+
+  /* ============================================
+     COLORS - FORM (Login/Auth Design System)
+     ============================================ */
+
+  /* Form Surface Colors */
+  --color-form-surface: #fbfbfc;
+  --color-form-background: #f2f2f6;
+
+  /* Form Border Colors */
+  --color-form-border: #cbcbd8;
+  --color-form-border-light: #e5e5ec;
+
+  /* Form Text Colors */
+  --color-form-title: #030303;
+  --color-form-body: #464649;
+  --color-form-subtitle: #858594;
+  --color-form-placeholder: #b3b3c2;
+
+  /* ============================================
+     COLORS - SUCCESS
+     ============================================ */
+
+  --color-success: #10b981;
+  --color-success-light: #d1fae5;
+  --color-success-dark: #059669;
+
+  /* ============================================
+     COLORS - ERROR
+     ============================================ */
+
+  --color-error: #ef4444;
+  --color-error-light: #fee2e2;
+  --color-error-dark: #dc2626;
+
+  /* ============================================
+     COLORS - WARNING
+     ============================================ */
+
+  --color-warning: #f59e0b;
+  --color-warning-light: #fef3c7;
+  --color-warning-dark: #d97706;
+
+  /* ============================================
+     COLORS - INFO
+     ============================================ */
+
+  --color-info: #3b82f6;
+  --color-info-light: #dbeafe;
+  --color-info-dark: #2563eb;
+
+  /* ============================================
+     SHADCN/UI COLORS - Light Mode
+     ============================================ */
+
+  /* Background Colors */
+  --color-background: hsl(0 0% 100%);
+  --color-foreground: hsl(222.2 84% 4.9%);
+
+  /* Card Colors */
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(222.2 84% 4.9%);
+
+  /* Popover Colors */
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(222.2 84% 4.9%);
+
+  /* Primary Colors (Shadcn format) */
+  --color-primary-foreground: hsl(222.2 47.4% 11.2%);
+  /* Also support --primary for backward compatibility */
+  --primary: hsl(217.2 91.2% 59.8%);
+  --primary-foreground: hsl(222.2 47.4% 11.2%);
+
+  /* Secondary Colors */
+  --color-secondary: hsl(210 40% 96.1%);
+  --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
+  --secondary: hsl(210 40% 96.1%);
+  --secondary-foreground: hsl(222.2 47.4% 11.2%);
+
+  /* Muted Colors */
+  --color-muted: hsl(210 40% 96.1%);
+  --color-muted-foreground: hsl(215.4 16.3% 46.9%);
+  --muted: hsl(210 40% 96.1%);
+  --muted-foreground: hsl(215.4 16.3% 46.9%);
+
+  /* Accent Colors */
+  --color-accent: hsl(210 40% 96.1%);
+  --color-accent-foreground: hsl(222.2 47.4% 11.2%);
+  --accent: hsl(210 40% 96.1%);
+  --accent-foreground: hsl(222.2 47.4% 11.2%);
+
+  /* Destructive Colors */
+  --color-destructive: hsl(0 84.2% 60.2%);
+  --color-destructive-foreground: hsl(210 40% 98%);
+  --destructive: hsl(0 84.2% 60.2%);
+  --destructive-foreground: hsl(210 40% 98%);
+
+  /* Border Colors */
+  --color-border: hsl(214.3 31.8% 91.4%);
+  --color-input: hsl(214.3 31.8% 91.4%);
+  --color-ring: hsl(217.2 91.2% 59.8%);
+  --border: hsl(214.3 31.8% 91.4%);
+  --input: hsl(214.3 31.8% 91.4%);
+  --ring: hsl(217.2 91.2% 59.8%);
+
+  /* Sidebar Colors */
+  --color-sidebar: hsl(0 0% 100%);
+  --color-sidebar-foreground: hsl(240 5.3% 26.1%);
+  --color-sidebar-primary: hsl(240 5.9% 10%);
+  --color-sidebar-primary-foreground: hsl(0 0% 98%);
+  --color-sidebar-accent: var(--color-gray-100);
+  --color-sidebar-accent-foreground: hsl(240 5.9% 10%);
+  --color-sidebar-border: rgba(13, 74, 56, 0.22);
+  --color-sidebar-ring: hsl(217.2 91.2% 59.8%);
+  --color-sidebar-muted: #545454;
+  --color-sidebar-text: #1f1f1f;
+  --color-sidebar-text-dark: #141b34;
+  --sidebar-width: 16.625rem;
+  --sidebar-width-mobile: 18rem;
+  --sidebar-width-icon: 5.5rem;
+}
+
+/* Custom utility classes for dashboard map card heights */
+.min-h-map-mobile {
+  min-height: var(--min-height-map-mobile);
+}
+
+@media (min-width: 1024px) {
+  .min-h-map-desktop {
+    min-height: var(--min-height-map-desktop);
+  }
+}
+
+/* ============================================
+   CSS CUSTOM PROPERTIES (for direct use in CSS/JS)
+   ============================================ */
+
+:root {
+  /* Typography */
+  --theme-font-inter: var(--font-inter);
+
+  /* Colors */
+  --theme-off-white: var(--color-off-white);
+  --theme-primary: var(--color-primary-500);
+  --theme-secondary: var(--color-gray-600);
+  --theme-success: var(--color-success);
+  --theme-error: var(--color-error);
+  --theme-warning: var(--color-warning);
+  --theme-info: var(--color-info);
+
+  /* Shadcn HSL Variables (for components that use hsl() wrapper) */
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 217.2 91.2% 59.8%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 217.2 91.2% 59.8%;
+  --radius: 0.5rem;
+
+  /* Sidebar Variables */
+  --sidebar: hsl(0 0% 100%);
+  --sidebar-foreground: hsl(240 5.3% 26.1%);
+  --sidebar-primary: hsl(240 5.9% 10%);
+  --sidebar-primary-foreground: hsl(0 0% 98%);
+  --sidebar-accent: var(--color-gray-100);
+  --sidebar-accent-foreground: hsl(240 5.9% 10%);
+  --sidebar-border: rgba(13, 74, 56, 0.22);
+  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+  --sidebar-muted: #545454;
+  --sidebar-text: #1f1f1f;
+  --sidebar-text-dark: #141b34;
+}
+
+/* ============================================
+   DARK MODE OVERRIDES
+   ============================================ */
+
+.dark {
+  /* Shadcn HSL Variables for Dark Mode */
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 217.2 91.2% 59.8%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 217.2 91.2% 59.8%;
+
+  /* Sidebar Dark Mode */
+  --sidebar: hsl(240 5.9% 10%);
+  --sidebar-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-primary: hsl(224.3 76.3% 48%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(240 3.7% 15.9%);
+  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-border: hsl(240 3.7% 15.9%);
+  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+}

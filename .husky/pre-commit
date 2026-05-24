@@ -1,0 +1,14 @@
+echo "🔍 Running pre-commit checks..."
+
+# Step 1: Run lint-staged for staged files (ESLint auto-fix + Prettier formatting)
+echo "📝 Linting and formatting staged files..."
+# Prevent Node OOM for large staged batches.
+export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=4096"
+
+# Run tasks sequentially to reduce peak memory usage.
+npx lint-staged --concurrent false || {
+  echo "❌ Lint-staged failed. Please fix the errors before committing."
+  exit 1
+}
+
+echo "✅ Pre-commit checks passed!"

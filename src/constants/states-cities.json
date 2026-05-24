@@ -1,0 +1,316 @@
+{
+  "United Kingdom": {
+    "England": [
+      {
+        "name": "Bath",
+        "starred": false
+      },
+      {
+        "name": "Birmingham",
+        "starred": true
+      },
+      {
+        "name": "Bradford",
+        "starred": true
+      },
+      {
+        "name": "Brighton & Hove",
+        "starred": false
+      },
+      {
+        "name": "Bristol",
+        "starred": true
+      },
+      {
+        "name": "Cambridge",
+        "starred": false
+      },
+      {
+        "name": "Canterbury",
+        "starred": true
+      },
+      {
+        "name": "Carlisle",
+        "starred": false
+      },
+      {
+        "name": "Chelmsford",
+        "starred": false
+      },
+      {
+        "name": "Chester",
+        "starred": true
+      },
+      {
+        "name": "Chichester",
+        "starred": false
+      },
+      {
+        "name": "Colchester",
+        "starred": false
+      },
+      {
+        "name": "Coventry",
+        "starred": true
+      },
+      {
+        "name": "Derby",
+        "starred": false
+      },
+      {
+        "name": "Doncaster",
+        "starred": false
+      },
+      {
+        "name": "Durham",
+        "starred": false
+      },
+      {
+        "name": "Ely",
+        "starred": false
+      },
+      {
+        "name": "Exeter",
+        "starred": true
+      },
+      {
+        "name": "Gloucester",
+        "starred": false
+      },
+      {
+        "name": "Hereford",
+        "starred": false
+      },
+      {
+        "name": "Kingston-upon-Hull",
+        "starred": true
+      },
+      {
+        "name": "Lancaster",
+        "starred": false
+      },
+      {
+        "name": "Leeds",
+        "starred": true
+      },
+      {
+        "name": "Leicester",
+        "starred": true
+      },
+      {
+        "name": "Lichfield",
+        "starred": false
+      },
+      {
+        "name": "Lincoln",
+        "starred": false
+      },
+      {
+        "name": "Liverpool",
+        "starred": true
+      },
+      {
+        "name": "London",
+        "starred": true
+      },
+      {
+        "name": "Manchester",
+        "starred": true
+      },
+      {
+        "name": "Milton Keynes",
+        "starred": false
+      },
+      {
+        "name": "Newcastle-upon-Tyne",
+        "starred": true
+      },
+      {
+        "name": "Norwich",
+        "starred": true
+      },
+      {
+        "name": "Nottingham",
+        "starred": true
+      },
+      {
+        "name": "Oxford",
+        "starred": true
+      },
+      {
+        "name": "Peterborough",
+        "starred": false
+      },
+      {
+        "name": "Plymouth",
+        "starred": true
+      },
+      {
+        "name": "Portsmouth",
+        "starred": true
+      },
+      {
+        "name": "Preston",
+        "starred": false
+      },
+      {
+        "name": "Ripon",
+        "starred": false
+      },
+      {
+        "name": "Salford",
+        "starred": false
+      },
+      {
+        "name": "Salisbury",
+        "starred": false
+      },
+      {
+        "name": "Sheffield",
+        "starred": true
+      },
+      {
+        "name": "Southampton",
+        "starred": true
+      },
+      {
+        "name": "Southend-on-Sea",
+        "starred": false
+      },
+      {
+        "name": "St Albans",
+        "starred": false
+      },
+      {
+        "name": "Stoke on Trent",
+        "starred": true
+      },
+      {
+        "name": "Sunderland",
+        "starred": false
+      },
+      {
+        "name": "Truro",
+        "starred": false
+      },
+      {
+        "name": "Wakefield",
+        "starred": false
+      },
+      {
+        "name": "Wells",
+        "starred": false
+      },
+      {
+        "name": "Westminster",
+        "starred": true
+      },
+      {
+        "name": "Winchester",
+        "starred": false
+      },
+      {
+        "name": "Wolverhampton",
+        "starred": false
+      },
+      {
+        "name": "Worcester",
+        "starred": false
+      },
+      {
+        "name": "York",
+        "starred": true
+      }
+    ],
+    "Northern Ireland": [
+      {
+        "name": "Armagh",
+        "starred": true
+      },
+      {
+        "name": "Bangor",
+        "starred": false
+      },
+      {
+        "name": "Belfast",
+        "starred": true
+      },
+      {
+        "name": "Lisburn",
+        "starred": false
+      },
+      {
+        "name": "Londonderry",
+        "starred": false
+      },
+      {
+        "name": "Newry",
+        "starred": false
+      }
+    ],
+    "Scotland": [
+      {
+        "name": "Aberdeen",
+        "starred": true
+      },
+      {
+        "name": "Dundee",
+        "starred": true
+      },
+      {
+        "name": "Dunfermline",
+        "starred": false
+      },
+      {
+        "name": "Edinburgh",
+        "starred": true
+      },
+      {
+        "name": "Glasgow",
+        "starred": true
+      },
+      {
+        "name": "Inverness",
+        "starred": false
+      },
+      {
+        "name": "Perth",
+        "starred": false
+      },
+      {
+        "name": "Stirling",
+        "starred": false
+      }
+    ],
+    "Wales": [
+      {
+        "name": "Bangor",
+        "starred": false
+      },
+      {
+        "name": "Cardiff",
+        "starred": true
+      },
+      {
+        "name": "Newport",
+        "starred": false
+      },
+      {
+        "name": "St Asaph",
+        "starred": false
+      },
+      {
+        "name": "St Davids",
+        "starred": false
+      },
+      {
+        "name": "Swansea",
+        "starred": true
+      },
+      {
+        "name": "Wrexham",
+        "starred": false
+      }
+    ]
+  }
+}

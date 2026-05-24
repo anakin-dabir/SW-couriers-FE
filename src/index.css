@@ -1,0 +1,562 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@import 'tailwindcss';
+@import './theme.module.css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* Local Inter fallback (matches the admin portal). Ensures the label PDF capture
+   always has a real Inter face available even if the Google Fonts CDN is slow,
+   blocked, or hasn't finished loading when html2canvas snapshots the off-screen
+   label container */
+@font-face {
+  font-family: 'Inter';
+  src: url('./assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('./assets/fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+@layer base {
+  /* Responsive Rem Strategy: Scale font size proportionally with viewport width */
+  /* Base: 1920px = 16px (1rem), scales down to 1440px = 12px (0.75rem) */
+  /* Formula: font-size scales by same percentage as viewport width reduction */
+  /* At 1440px: 16px * (1440/1920) = 12px (0.75rem) */
+  html {
+    font-size: clamp(0.75rem, 0.833vw, 1rem); /* 12px to 16px, stops at 1440px */
+  }
+
+  /* For screens larger than 1920px, maintain base font size */
+  @media (min-width: 1921px) {
+    html {
+      font-size: 1rem; /* 16px */
+    }
+  }
+
+  /* For screens smaller than 1440px, maintain minimum font size */
+  @media (max-width: 1440px) {
+    html {
+      font-size: 0.75rem; /* 12px */
+    }
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    border-color: hsl(var(--border));
+  }
+
+  html {
+    height: 100%;
+  }
+
+  body {
+    font-family:
+      'Inter',
+      system-ui,
+      -apple-system,
+      sans-serif;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    min-height: 100%;
+    overflow: hidden;
+    line-height: 1.5;
+  }
+
+  #root {
+    min-height: 100%;
+  }
+
+  button,
+  a {
+    cursor: pointer;
+  }
+
+  * {
+    font-family: var(--font-inter);
+  }
+}
+
+/* Input OTP Caret Animation */
+@keyframes caret-blink {
+  0%,
+  70%,
+  100% {
+    opacity: 1;
+  }
+  20%,
+  50% {
+    opacity: 0;
+  }
+}
+
+.animate-caret-blink {
+  animation: caret-blink 1.25s ease-out infinite;
+}
+
+/* Leaflet custom marker (DeliveryTrackingMap) */
+.leaflet-div-icon.delivery-tracking-marker {
+  background: none;
+  border: none;
+}
+
+/* Pickup location map – draggable pin, no default marker styles */
+.pickup-location-map-root .leaflet-div-icon.pickup-location-pin {
+  background: none;
+  border: none;
+}
+
+/* Remove borders from map control buttons (current location, zoom, fullscreen) */
+.pickup-location-map-root .leaflet-control.leaflet-bar {
+  border: none;
+}
+.pickup-location-map-root .leaflet-control .leaflet-bar {
+  border: none;
+}
+
+/* Grayscale only the map tiles, not markers (DeliveryTrackingMap) */
+.delivery-tracking-map-root .leaflet-tile-pane {
+  filter: grayscale(1);
+}
+
+/* Grayscale only the map tiles, not markers (DashboardMap) */
+.dashboard-map-root {
+  z-index: 40;
+  position: relative;
+}
+
+.dashboard-map-root .leaflet-tile-pane {
+  filter: grayscale(1);
+}
+
+/* Ensure markers appear above map tiles and are not affected by grayscale */
+.dashboard-map-root .leaflet-marker-pane {
+  z-index: 650 !important;
+  filter: grayscale(0) !important;
+  position: relative;
+}
+
+/* Ensure individual marker icons are not affected by grayscale */
+.dashboard-map-root .leaflet-marker-icon {
+  filter: grayscale(0) !important;
+  z-index: 30 !important;
+  position: relative;
+  opacity: 1 !important;
+}
+
+/* Ensure truck black and white marker is displayed in grayscale */
+.dashboard-map-root .delivery-tracking-truck-bw-marker img {
+  filter: grayscale(100%) !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+/* Ensure truck marker is clickable */
+.dashboard-map-root .delivery-tracking-truck-bw-marker {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Ensure truck marker container allows clicks */
+.dashboard-map-root .leaflet-marker-icon.delivery-tracking-truck-bw-marker {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  z-index: 1000 !important;
+}
+
+/* Override any Leaflet default styles that might block clicks */
+.dashboard-map-root .leaflet-marker-icon.delivery-tracking-truck-bw-marker * {
+  pointer-events: auto !important;
+}
+
+/* Pickup Details Popup Styling */
+.dashboard-map-root .leaflet-popup-pickup-details .leaflet-popup-content-wrapper {
+  padding: 0;
+  border-radius: 0.5rem;
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  overflow: visible !important;
+}
+
+.dashboard-map-root .leaflet-popup-pickup-details .leaflet-popup-content {
+  margin: 0;
+  width: auto !important;
+  overflow: visible !important;
+}
+
+.dashboard-map-root .leaflet-popup-pickup-details .leaflet-popup-tip {
+  background: white;
+  border: 1px solid #e5e7eb;
+}
+
+/* Ensure sub-dialog appears above popup */
+.dashboard-map-root .leaflet-popup-pickup-details {
+  overflow: visible !important;
+}
+
+/* Lexical Editor Styles */
+.editor-placeholder {
+  color: hsl(var(--muted-foreground));
+  overflow: hidden;
+  position: absolute;
+  text-overflow: ellipsis;
+  top: 0.5rem;
+  left: 0.75rem;
+  font-size: 0.875rem;
+  user-select: none;
+  display: inline-block;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Ensure ContentEditable is editable */
+[contenteditable='true'] {
+  -webkit-user-modify: read-write-plaintext-only;
+  cursor: text;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+[contenteditable='true']:focus {
+  outline: none;
+}
+
+[contenteditable='true']:empty:before {
+  content: attr(data-placeholder);
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+}
+
+.editor-paragraph {
+  margin: 0;
+  margin-bottom: 0.5rem;
+  position: relative;
+  line-height: 1.6;
+}
+
+.editor-paragraph:last-child {
+  margin-bottom: 0;
+}
+
+/* Ensure proper spacing and prevent overlap for content with varying font sizes */
+[contenteditable='true'] {
+  line-height: 1.6;
+}
+
+[contenteditable='true'] * {
+  line-height: inherit;
+}
+
+/* Ensure inline elements with font-size don't overlap */
+[contenteditable='true'] span[style*='font-size'],
+[contenteditable='true'] strong[style*='font-size'],
+[contenteditable='true'] em[style*='font-size'],
+[contenteditable='true'] u[style*='font-size'] {
+  display: inline;
+  vertical-align: baseline;
+  line-height: 1.6;
+}
+
+.editor-heading-h1 {
+  font-size: 1.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
+}
+
+.editor-heading-h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-bottom: 0.5rem;
+}
+
+.editor-heading-h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-bottom: 0.5rem;
+}
+
+.editor-heading-h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-bottom: 0.5rem;
+}
+
+.editor-heading-h5 {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+  margin-bottom: 0.5rem;
+}
+
+.editor-heading-h6 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.5;
+  margin-bottom: 0.5rem;
+}
+
+.editor-quote {
+  margin: 0;
+  margin-left: 1.25rem;
+  margin-bottom: 0.5rem;
+  padding-left: 1rem;
+  border-left: 0.25rem solid hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+}
+
+.editor-list-ol {
+  padding: 0;
+  margin: 0;
+  margin-left: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.editor-list-ul {
+  padding: 0;
+  margin: 0;
+  margin-left: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.editor-listitem {
+  margin: 0.5rem 0;
+  padding-left: 0.25rem;
+}
+
+.editor-nested-listitem {
+  list-style-type: none;
+}
+
+.editor-text-bold {
+  font-weight: 600;
+}
+
+.editor-text-italic {
+  font-style: italic;
+}
+
+.editor-text-underline {
+  text-decoration: underline;
+}
+
+.editor-text-strikethrough {
+  text-decoration: line-through;
+}
+
+.editor-text-underlineStrikethrough {
+  text-decoration: underline line-through;
+}
+
+.editor-text-code {
+  background-color: hsl(var(--muted));
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-family:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.875em;
+}
+
+.editor-link {
+  color: hsl(var(--primary));
+  text-decoration: none;
+}
+
+.editor-link:hover {
+  text-decoration: underline;
+}
+
+.editor-code {
+  background-color: hsl(var(--muted));
+  font-family:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  display: block;
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+  border-radius: 0.25rem;
+  overflow-x: auto;
+  position: relative;
+}
+
+.editor-image {
+  cursor: default;
+  display: inline-block;
+  position: relative;
+  user-select: none;
+}
+
+.editor-image img {
+  max-width: 100%;
+  cursor: default;
+}
+
+.editor-image img.focused {
+  outline: 2px solid hsl(var(--ring));
+  border-radius: 0.25rem;
+}
+
+.editor-image img.focused.draggable {
+  cursor: grab;
+}
+
+.editor-image img.focused.draggable:active {
+  cursor: grabbing;
+}
+
+/* =========================================================================
+   Braintree Drop-in: match shadcn / FormField and reduce field height
+   ========================================================================= */
+/* Hide "Pay with card" header and card brand icons */
+#braintree-dropin-container [data-braintree-id='card-sheet-header'] {
+  display: none !important;
+}
+
+/* Remove outer border from payment form panel */
+#braintree-dropin-container .braintree-dropin,
+#braintree-dropin-container .braintree-sheet {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+#braintree-dropin-container .braintree-dropin {
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+
+#braintree-dropin-container .braintree-sheet__content--form {
+  padding: 0.5rem 0 0;
+}
+
+#braintree-dropin-container .braintree-sheet__content--form .braintree-form__field-group {
+  margin-bottom: 0.75rem;
+  padding-left: 0;
+}
+
+#braintree-dropin-container
+  .braintree-sheet__content--form
+  .braintree-form__field-group
+  .braintree-form__label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-form-title, #030303);
+  line-height: 1.25;
+  margin-bottom: 0.25rem;
+}
+
+#braintree-dropin-container
+  .braintree-sheet__content--form
+  .braintree-form__field-group
+  .braintree-form__field
+  .braintree-form__hosted-field {
+  border: 1px solid var(--color-form-border-light, #e5e5ec);
+  border-radius: 0.375rem;
+  background-color: var(--color-form-surface, #fbfbfc);
+  padding: 0 0.75rem;
+  margin: 0.25rem 0 0;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+#braintree-dropin-container
+  .braintree-sheet__content--form
+  .braintree-form__field-group
+  .braintree-form__field
+  .braintree-form__hosted-field:hover {
+  border-color: var(--color-form-border, #cbcbd8);
+}
+
+#braintree-dropin-container
+  .braintree-sheet__content--form
+  .braintree-form__field-group
+  .braintree-form__field
+  .braintree-form__hosted-field.braintree-form__field--valid {
+  border-color: var(--color-form-border-light, #e5e5ec);
+}
+
+#braintree-dropin-container
+  .braintree-sheet__content--form
+  .braintree-form__field-group.braintree-form__field-group--is-focused
+  .braintree-form__field
+  .braintree-form__hosted-field {
+  border-color: var(--color-primary-500, #ae2224);
+  outline: none;
+  box-shadow: 0 0 0 2px rgb(202 0 0 / 0.2);
+}
+
+#braintree-dropin-container
+  .braintree-sheet__content--form
+  .braintree-form__field-group.braintree-form__field-group--has-error
+  .braintree-form__field
+  .braintree-form__hosted-field {
+  border-color: var(--color-error, #ef4444);
+}
+
+/* Cardholder name (non-hosted) raw input if present */
+#braintree-dropin-container
+  .braintree-form__field-group
+  .braintree-form__field
+  input.braintree-form__raw-input {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--color-form-border-light, #e5e5ec);
+  border-radius: 0.375rem;
+  background-color: var(--color-form-surface, #fbfbfc);
+  color: var(--color-form-title, #030303);
+}
+
+#braintree-dropin-container .braintree-sheet__content--form .braintree-form__flexible-fields {
+  gap: 0.75rem;
+}
+
+#braintree-dropin-container .braintree-sheet__content--form .braintree-form__notice-of-collection {
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
+  color: var(--color-form-subtitle, #858594);
+}
+
+#braintree-dropin-container .braintree-heading {
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Audit logs — thin horizontal scrollbar on wide activity table */
+.audit-recent-activity-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+.audit-recent-activity-scroll::-webkit-scrollbar {
+  height: 5px;
+}
+
+.audit-recent-activity-scroll::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 9999px;
+}
+
+.audit-recent-activity-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
