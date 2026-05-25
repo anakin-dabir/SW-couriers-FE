@@ -48,3 +48,6 @@ PR_TEMPLATE.md
 PR_DESCRIPTION.md
 temp_auto_push.bat
 temp_interactive_push.bat
+
+.claude
+.wrangler/state/v3/cache/*

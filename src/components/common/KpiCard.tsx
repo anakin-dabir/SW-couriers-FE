@@ -37,21 +37,21 @@ export default function KpiCard({
   const delta = formatChange(changePct);
 
   return (
-    <div className="flex h-[130px] min-w-[180px] flex-col rounded-lg border border-[#E2E8F0] bg-white p-4 shadow-[0_1px_1px_rgba(0,0,0,0.05)]">
+    <div className="flex h-[130px] min-w-[180px] flex-col rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
       <div className="flex flex-1 flex-col gap-1">
         <Icon className={cn('h-5 w-5 text-gray-500', iconClassName)} />
-        <Typography variant="label" className="text-[14px] font-medium leading-5 text-[#020617]">
+        <Typography variant="label" className="text-[14px] font-medium leading-5 text-gray-900">
           {label}
         </Typography>
         {isLoading ? (
           <div className="mt-1 h-7 w-16 animate-pulse rounded bg-gray-100" />
         ) : (
           <div className="flex items-baseline gap-1">
-            <Typography className="text-[24px] font-semibold leading-7 text-[#030303]">
+            <Typography className="text-[24px] font-semibold leading-7 text-gray-900">
               {value ?? 0}
             </Typography>
             {unit ? (
-              <Typography className="text-[13px] font-medium text-[#71717A]">{unit}</Typography>
+              <Typography className="text-[13px] font-medium text-gray-500">{unit}</Typography>
             ) : null}
           </div>
         )}
@@ -75,7 +75,7 @@ export default function KpiCard({
                 )}
                 {delta.text}
               </span>
-              <Typography className="text-[12px] font-medium text-[#A1A1AA]">
+              <Typography className="text-[12px] font-medium text-gray-400">
                 {comparisonLabel}
               </Typography>
             </>
