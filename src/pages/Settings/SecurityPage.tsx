@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CircleOff, KeyRound, Lock, LogOut } from 'lucide-react';
+import { KeyRound, Laptop, Lock, LogOut, Smartphone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/atoms/Button';
@@ -7,6 +7,12 @@ import { Typography } from '@/components/atoms';
 import { FormField } from '@/components/molecules';
 import PasswordRequirementsList from '@/components/molecules/PasswordRequirementsList';
 import { cn } from '@/lib/utils';
+import {
+  SETTINGS_FORM_CARD_CLASS,
+  SETTINGS_SAVE_BTN_CLASS,
+  SETTINGS_SECTION_DESC_CLASS,
+} from '@/lib/settingsUi';
+import { portalColors, portalOutlineButtonClass } from '@/lib/portalTheme';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { changePasswordSchema, type ChangePasswordFormData } from '@/schemas/companyDetails.schema';
 import { clearCredentials } from '@/store/slices/authSlice';
@@ -20,16 +26,43 @@ import {
 } from '@/store/api/authApi';
 import { getErrorMessage } from '@/store/api/utils';
 
-function formatLastSeen(isoDate: string): string {
+function formatSessionLastActive(isoDate: string): string {
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) return 'Unknown';
-  return date.toLocaleString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
+
+  const now = new Date();
+  const timeLabel = date.toLocaleString('en-GB', {
+    hour: 'numeric',
     minute: '2-digit',
+    hour12: true,
   });
+
+  if (date.toDateString() === now.toDateString()) {
+    return `Today at ${timeLabel}`;
+  }
+
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) {
+    return `Yesterday at ${timeLabel}`;
+  }
+
+  return date.toLocaleString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+function SessionDeviceIcon({ session }: { session: AuthSessionItemDto }): React.JSX.Element {
+  const Icon = session.is_mobile || session.is_tablet ? Smartphone : Laptop;
+  return (
+    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-[#E5E7EB] bg-[#FAFAFA]">
+      <Icon className="size-4 text-[#71717A]" aria-hidden />
+    </span>
+  );
 }
 
 export default function SecurityPage(): React.JSX.Element {
@@ -70,15 +103,12 @@ export default function SecurityPage(): React.JSX.Element {
   });
 
   const newPasswordValue = watch('newPassword') ?? '';
-  /** Requirement hints live in PasswordRequirementsList — avoid duplicating under the input */
   const newPasswordFieldError =
     errors.newPassword?.message === 'New password is required' ? errors.newPassword : undefined;
 
   const handlePasswordSubmit = async (data: ChangePasswordFormData): Promise<void> => {
     try {
       setIsChangingPassword(true);
-      // authApi endpoint typings are resolved at runtime by RTK Query.
-
       await dispatch(
         authApi.endpoints.changePassword.initiate({
           current_password: data.currentPassword,
@@ -114,8 +144,6 @@ export default function SecurityPage(): React.JSX.Element {
       }
 
       setIsSigningOutOthers(true);
-      // authApi endpoint typings are resolved at runtime by RTK Query.
-
       await dispatch(authApi.endpoints.logoutOtherSessions.initiate()).unwrap();
       toast.success('Logged out from other sessions.');
       void refetchSessions();
@@ -141,204 +169,192 @@ export default function SecurityPage(): React.JSX.Element {
     }
   };
 
+  const sessionActionsDisabled =
+    isSigningOutSingle || isSigningOutAll || isSigningOutOthers || isChangingPassword;
+
   return (
-    <section
-      className={cn(
-        'flex min-w-0 flex-1 flex-col gap-4 rounded-xl border border-gray-200 bg-gray-50 p-5'
-      )}
-    >
-      <header className="flex flex-col gap-1">
-        <Typography variant="h4" weight="semibold" className="text-gray-900">
-          Security
-        </Typography>
-        <Typography variant="body" color="muted" className="text-gray-600">
-          Configure security controls, authentication policies, and system access protections to
-          safeguard administrative operations.
-        </Typography>
-      </header>
-
-      <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
-        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 sm:p-5">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <Typography variant="h4" weight="semibold" className="text-gray-900">
-              Session Management
-            </Typography>
-            <div className="flex items-center gap-2">
-              {isPasswordFormOpen && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="px-4"
-                  onClick={handleCancel}
-                >
-                  Cancel
-                </Button>
-              )}
+    <div className="flex flex-col gap-5">
+      <div className={SETTINGS_FORM_CARD_CLASS}>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#F4F4F5] pb-5">
+          <Typography variant="h4" className="text-base font-semibold text-[#18181B]">
+            Session Management
+          </Typography>
+          <div className="flex flex-wrap items-center gap-2">
+            {isPasswordFormOpen ? (
               <Button
-                type={isPasswordFormOpen ? 'submit' : 'button'}
-                form={isPasswordFormOpen ? 'change-password-form' : undefined}
-                variant="default"
-                size="sm"
-                className="gap-1.5"
-                onClick={isPasswordFormOpen ? undefined : () => setIsPasswordFormOpen(true)}
-                disabled={
-                  isChangingPassword || isSigningOutSingle || isSigningOutAll || isSigningOutOthers
-                }
+                type="button"
+                variant="outline"
+                className={portalOutlineButtonClass}
+                onClick={handleCancel}
+                disabled={isChangingPassword}
               >
-                <Lock className="h-4 w-4" />
-                {isPasswordFormOpen
-                  ? isChangingPassword
-                    ? 'Updating Password...'
-                    : 'Update Password'
-                  : 'Change Password'}
+                Cancel
               </Button>
-            </div>
+            ) : null}
+            <Button
+              type={isPasswordFormOpen ? 'submit' : 'button'}
+              form={isPasswordFormOpen ? 'change-password-form' : undefined}
+              className={SETTINGS_SAVE_BTN_CLASS}
+              onClick={isPasswordFormOpen ? undefined : () => setIsPasswordFormOpen(true)}
+              disabled={sessionActionsDisabled}
+            >
+              <Lock className="size-4" />
+              {isPasswordFormOpen
+                ? isChangingPassword
+                  ? 'Updating Password...'
+                  : 'Update Password'
+                : 'Change Password'}
+            </Button>
           </div>
-
-          {isPasswordFormOpen && (
-            <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
-              <Typography variant="h4" weight="semibold" className="text-gray-900">
-                Update Your Password
-              </Typography>
-              <Typography variant="body" color="muted" className="mt-1 text-gray-600">
-                Enter and confirm your new password, with a combination of at least 1 uppercase, 1
-                lowercase and a number (0-9) required.
-              </Typography>
-
-              <form
-                id="change-password-form"
-                onSubmit={(e) => void handleSubmit(handlePasswordSubmit)(e)}
-                className="mt-4 flex flex-col gap-4"
-              >
-                <FormField
-                  label="Current Password"
-                  type="password"
-                  required
-                  placeholder="Enter Current Password"
-                  leftIcon={KeyRound}
-                  error={errors.currentPassword}
-                  {...register('currentPassword')}
-                />
-
-                <FormField
-                  label="New Password"
-                  type="password"
-                  required
-                  placeholder="Enter New Password"
-                  leftIcon={KeyRound}
-                  error={newPasswordFieldError}
-                  {...register('newPassword')}
-                />
-
-                <PasswordRequirementsList password={newPasswordValue} />
-
-                <FormField
-                  label="Confirm New Password"
-                  type="password"
-                  required
-                  placeholder="Confirm Password"
-                  leftIcon={KeyRound}
-                  error={errors.confirmNewPassword}
-                  {...register('confirmNewPassword')}
-                />
-              </form>
-            </div>
-          )}
-
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 text-left text-gray-500">
-                  <th className="pb-2 font-medium">Active Session</th>
-                  <th className="pb-2 font-medium">Location</th>
-                  <th className="pb-2 font-medium">Last Active</th>
-                  <th className="pb-2 text-right font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isSessionsLoading && (
-                  <tr>
-                    <td colSpan={4} className="py-6 text-center text-gray-500">
-                      Loading active sessions...
-                    </td>
-                  </tr>
-                )}
-                {isSessionsError && (
-                  <tr>
-                    <td colSpan={4} className="py-6 text-center text-red-600">
-                      {getErrorMessage(sessionsError)}
-                    </td>
-                  </tr>
-                )}
-                {!isSessionsLoading && !isSessionsError && sessions.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="py-6 text-center text-gray-500">
-                      No active sessions found.
-                    </td>
-                  </tr>
-                )}
-                {!isSessionsLoading &&
-                  !isSessionsError &&
-                  sessions.map((session) => (
-                    <tr
-                      key={session.session_id}
-                      className="border-b border-gray-100 last:border-b-0"
-                    >
-                      <td className="py-3">
-                        <div className="flex items-start gap-2">
-                          <CircleOff className="mt-0.5 h-4 w-4 text-gray-500" />
-                          <div className="leading-tight">
-                            <Typography variant="body" className="text-gray-900">
-                              {session.device_label}
-                            </Typography>
-                            {session.current && (
-                              <Typography
-                                variant="caption"
-                                className="text-xs font-medium text-teal-600"
-                              >
-                                This device • Active
-                              </Typography>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 text-gray-800">
-                        {session.location_label ?? 'Unknown location'}
-                      </td>
-                      <td className="py-3 text-gray-800">{formatLastSeen(session.last_seen_at)}</td>
-                      <td className="py-3 text-right">
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          className="gap-1.5 border-gray-300"
-                          onClick={() => void handleSignOutSession(session)}
-                          disabled={isSigningOutSingle || isSigningOutAll || isSigningOutOthers}
-                        >
-                          <LogOut className="h-4 w-4" />
-                          Sign Out
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="mt-4 gap-1.5 border-gray-300"
-            onClick={() => void handleSignOutAllSessions()}
-            disabled={isSigningOutAll || isSigningOutSingle || isSigningOutOthers}
-          >
-            <LogOut className="h-4 w-4" />
-            {isSigningOutAll ? 'Signing out...' : 'Sign out of All Sessions'}
-          </Button>
         </div>
+
+        {isPasswordFormOpen ? (
+          <div className="mt-5 rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] p-5">
+            <Typography variant="h4" className="text-base font-semibold text-[#18181B]">
+              Update Your Password
+            </Typography>
+            <Typography variant="body" className={cn('mt-1', SETTINGS_SECTION_DESC_CLASS)}>
+              Enter and confirm your new password, with a combination of at least 1 uppercase, 1
+              lowercase and a number (0-9) required.
+            </Typography>
+
+            <form
+              id="change-password-form"
+              onSubmit={(e) => void handleSubmit(handlePasswordSubmit)(e)}
+              className="mt-4 flex flex-col gap-4"
+            >
+              <FormField
+                label="Current Password"
+                type="password"
+                required
+                placeholder="Enter Current Password"
+                leftIcon={KeyRound}
+                error={errors.currentPassword}
+                {...register('currentPassword')}
+              />
+
+              <FormField
+                label="New Password"
+                type="password"
+                required
+                placeholder="Enter New Password"
+                leftIcon={KeyRound}
+                error={newPasswordFieldError}
+                {...register('newPassword')}
+              />
+
+              <PasswordRequirementsList password={newPasswordValue} />
+
+              <FormField
+                label="Confirm New Password"
+                type="password"
+                required
+                placeholder="Confirm Password"
+                leftIcon={KeyRound}
+                error={errors.confirmNewPassword}
+                {...register('confirmNewPassword')}
+              />
+            </form>
+          </div>
+        ) : null}
+
+        <div className="mt-5 overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="border-b border-[#E5E7EB] text-left">
+                <th className="pb-3 pr-4 text-xs font-medium text-[#71717A]">Active Session</th>
+                <th className="pb-3 pr-4 text-xs font-medium text-[#71717A]">Location</th>
+                <th className="pb-3 pr-4 text-xs font-medium text-[#71717A]">Last Active</th>
+                <th className="pb-3 text-right text-xs font-medium text-[#71717A]">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isSessionsLoading ? (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-[#71717A]">
+                    Loading active sessions...
+                  </td>
+                </tr>
+              ) : null}
+              {isSessionsError ? (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-[#DC2626]">
+                    {getErrorMessage(sessionsError)}
+                  </td>
+                </tr>
+              ) : null}
+              {!isSessionsLoading && !isSessionsError && sessions.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-[#71717A]">
+                    No active sessions found.
+                  </td>
+                </tr>
+              ) : null}
+              {!isSessionsLoading &&
+                !isSessionsError &&
+                sessions.map((session) => (
+                  <tr
+                    key={session.session_id}
+                    className="border-b border-[#F4F4F5] last:border-b-0"
+                  >
+                    <td className="py-4 pr-4">
+                      <div className="flex items-center gap-3">
+                        <SessionDeviceIcon session={session} />
+                        <div className="min-w-0">
+                          <Typography variant="body" className="text-sm font-medium text-[#18181B]">
+                            {session.device_label}
+                          </Typography>
+                          {session.current ? (
+                            <span
+                              className="mt-0.5 flex items-center gap-1.5 text-xs font-medium"
+                              style={{ color: portalColors.success }}
+                            >
+                              <span
+                                className="size-1.5 shrink-0 rounded-full"
+                                style={{ backgroundColor: portalColors.success }}
+                                aria-hidden
+                              />
+                              This device • Active
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 pr-4 text-sm text-[#3F3F46]">
+                      {session.location_label ?? 'Unknown location'}
+                    </td>
+                    <td className="py-4 pr-4 text-sm text-[#3F3F46]">
+                      {formatSessionLastActive(session.last_seen_at)}
+                    </td>
+                    <td className="py-4 text-right">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={cn(portalOutlineButtonClass, 'h-9 px-3 text-sm')}
+                        onClick={() => void handleSignOutSession(session)}
+                        disabled={sessionActionsDisabled}
+                      >
+                        <LogOut className="size-4" />
+                        Sign Out
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          className={cn(portalOutlineButtonClass, 'mt-5')}
+          onClick={() => void handleSignOutAllSessions()}
+          disabled={sessionActionsDisabled}
+        >
+          <LogOut className="size-4" />
+          {isSigningOutAll ? 'Signing out...' : 'Sign out of All Sessions'}
+        </Button>
       </div>
-    </section>
+    </div>
   );
 }

@@ -9,9 +9,14 @@ import { clearCredentials, selectUser } from '@/store/slices/authSlice';
 
 interface DashboardLayoutProps {
   children: ReactNode;
+  /** `flush` removes main padding so full-bleed shells (e.g. settings) own spacing. */
+  mainVariant?: 'default' | 'flush';
 }
 
-const DashboardLayout = memo(function DashboardLayout({ children }: DashboardLayoutProps) {
+const DashboardLayout = memo(function DashboardLayout({
+  children,
+  mainVariant = 'default',
+}: DashboardLayoutProps) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const user = useSelector(selectUser);
@@ -34,7 +39,15 @@ const DashboardLayout = memo(function DashboardLayout({ children }: DashboardLay
       <AppSidebar user={USER_DATA} />
       <SidebarInset className="flex flex-col min-w-0 flex-1 h-full overflow-hidden">
         <DashboardHeader user={USER_DATA} onLogout={handleLogout} />
-        <main id="main-content" role="main" className="flex-1 overflow-auto p-6">
+        <main
+          id="main-content"
+          role="main"
+          className={
+            mainVariant === 'flush'
+              ? 'flex min-h-0 flex-1 flex-col overflow-auto p-0'
+              : 'flex-1 overflow-auto p-6'
+          }
+        >
           {children}
         </main>
       </SidebarInset>

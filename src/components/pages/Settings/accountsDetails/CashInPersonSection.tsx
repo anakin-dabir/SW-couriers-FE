@@ -1,11 +1,9 @@
-import Typography from '@/components/atoms/Typography';
-import {
-  ACCOUNTS_DETAILS_SECTION_CLASS,
-  formatBillingScheduleLabel,
-  indexPaymentMethodsByModel,
-} from '@/lib/paymentSettings';
+import { formatBillingScheduleLabel, indexPaymentMethodsByModel } from '@/lib/paymentSettings';
+import { SETTINGS_FORM_CARD_CLASS } from '@/lib/settingsUi';
+import { portalColors } from '@/lib/portalTheme';
 import type { OrganizationPaymentMethodDto } from '@/store/api/homeDashboardApi';
 import BillingScheduleRow from './BillingScheduleRow';
+import PaymentSectionHeader from './PaymentSectionHeader';
 
 interface CashInPersonSectionProps {
   orgPaymentMethods: OrganizationPaymentMethodDto[] | undefined;
@@ -22,26 +20,23 @@ export default function CashInPersonSection({
   );
 
   return (
-    <section className={ACCOUNTS_DETAILS_SECTION_CLASS}>
-      <div className="border-b border-[#E6E8EE] pb-4">
-        <Typography
-          variant="h4"
-          weight="semibold"
-          className="text-[2rem] leading-none text-[#1E2533]"
-        >
-          Cash (In-Person)
-        </Typography>
-        <Typography variant="body" color="muted" className="mt-2 text-[#6B7280]">
-          Pay in person at our office or depot.
-        </Typography>
-      </div>
+    <section className={SETTINGS_FORM_CARD_CLASS}>
+      <PaymentSectionHeader
+        title="Cash (In-Person)"
+        description="Pay in person at our office or depot."
+      />
 
-      <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-[#4B5563]">
+      <ul
+        className="mt-5 list-disc space-y-2 pl-5 text-sm leading-6"
+        style={{ color: portalColors.textSecondary }}
+      >
         <li>Payments are settled in person at the time of service or collection.</li>
         <li>All cash payments are recorded and confirmed by an administrator.</li>
       </ul>
 
-      <BillingScheduleRow value={billingSchedule} />
+      <div className="mt-5">
+        <BillingScheduleRow value={billingSchedule} />
+      </div>
     </section>
   );
 }

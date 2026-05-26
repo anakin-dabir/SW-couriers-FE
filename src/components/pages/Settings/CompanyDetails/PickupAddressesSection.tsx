@@ -11,6 +11,7 @@ import type {
   PickupAddress,
 } from '@/components/pages/Settings/CompanyDetails/types';
 import { sliceErrorsByPrefix } from '@/lib/formFieldErrors';
+import { SETTINGS_SECTION_TITLE_CLASS } from '@/lib/settingsUi';
 
 interface PickupAddressesSectionProps {
   generalSettings: GeneralSettingsState;
@@ -23,6 +24,7 @@ interface PickupAddressesSectionProps {
   onSetDefaultPickup: (pickupId: string) => void;
   onPatchPickup: (pickupId: string, updates: Partial<PickupAddress>) => void;
   serverFieldErrors?: Record<string, string>;
+  readOnly?: boolean;
 }
 
 export default function PickupAddressesSection({
@@ -36,28 +38,30 @@ export default function PickupAddressesSection({
   onSetDefaultPickup,
   onPatchPickup,
   serverFieldErrors,
+  readOnly = false,
 }: PickupAddressesSectionProps): React.JSX.Element {
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <Typography variant="body" weight="semibold" className="text-sm text-gray-900">
-          Pickup Address
-        </Typography>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-6 border-gray-200 px-2 text-[10px] font-medium text-gray-700"
-          onClick={onAddPickup}
-        >
-          <Plus className="mr-1 h-3 w-3" />
-          Add New Pickup Address
-        </Button>
+    <section className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Typography className={SETTINGS_SECTION_TITLE_CLASS}>Pickup Address</Typography>
+        {!readOnly ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-9 border-[#E5E7EB] bg-white px-3 text-sm text-[#18181B]"
+            onClick={onAddPickup}
+          >
+            <Plus className="mr-1 h-3 w-3" />
+            Add New Pickup Address
+          </Button>
+        ) : null}
       </div>
 
       {generalSettings.pickupAddresses.map((pickup, index) => {
         const effectivePickupAddress = resolveEffectivePickupAddress(pickup, generalSettings);
-        const disablePickupAddressInputs = pickup.sameAsRegistered || pickup.sameAsTrading;
+        const disablePickupAddressInputs =
+          readOnly || pickup.sameAsRegistered || pickup.sameAsTrading;
         const mapTarget: MapPickerTarget = `pickup:${pickup.id}`;
         const isMapPickerOpen = activeMapPicker === mapTarget;
 
@@ -72,6 +76,7 @@ export default function PickupAddressesSection({
             index={index}
             effectiveAddress={effectivePickupAddress}
             disableAddressInputs={disablePickupAddressInputs}
+            readOnly={readOnly}
             pickupCount={generalSettings.pickupAddresses.length}
             isMapPickerOpen={isMapPickerOpen}
             onToggleMapPicker={() => onToggleMapPicker(mapTarget)}
@@ -100,6 +105,6 @@ export default function PickupAddressesSection({
           />
         );
       })}
-    </div>
+    </section>
   );
 }

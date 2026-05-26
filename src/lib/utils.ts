@@ -58,6 +58,7 @@ export function getPageTitle(pathname: string): string {
     '/deliveries/pending': 'Pending Pickup',
     '/billing': 'Billing',
     '/credit-request': 'Overview',
+    '/credit-request/new': 'Overview',
     '/credit-request/drafts': 'Draft Credit Applications',
     '/notifications': 'Notifications',
     '/notifications/preferences': 'Preferences',
@@ -173,6 +174,7 @@ export function getBreadcrumbItems(pathname: string): BreadcrumbItem[] {
     '/deliveries/pending': 'Pending Pickup',
     '/billing': 'Billing',
     '/credit-request': 'Overview',
+    '/credit-request/new': 'Overview',
     '/credit-request/drafts': 'Draft Credit Applications',
     '/notifications': 'Notifications',
     '/notifications/preferences': 'Preferences',
@@ -192,6 +194,7 @@ export function getBreadcrumbItems(pathname: string): BreadcrumbItem[] {
     '/deliveries/pending': { label: 'Deliveries', to: '/deliveries' },
     '/notifications/preferences': { label: 'Notifications', to: '/notifications' },
     '/credit-request': { label: 'Credit management', to: '/credit-request' },
+    '/credit-request/new': { label: 'Credit management', to: '/credit-request' },
     '/credit-request/drafts': { label: 'Credit management', to: '/credit-request' },
   };
 

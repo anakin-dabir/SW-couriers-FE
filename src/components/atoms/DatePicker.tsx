@@ -19,6 +19,8 @@ interface DatePickerProps {
   className?: string;
   /** Whether the field is disabled */
   disabled?: boolean;
+  /** date-fns format for the displayed value */
+  displayFormat?: string;
 }
 
 /**
@@ -32,6 +34,7 @@ export default function DatePicker({
   placeholder = 'Select date',
   className,
   disabled,
+  displayFormat = 'yyyy-MM-dd',
 }: DatePickerProps): React.JSX.Element {
   return (
     <div className={cn('flex flex-col gap-2', className)}>
@@ -55,7 +58,7 @@ export default function DatePicker({
           >
             <CalendarIcon className="h-4 w-4 text-form-subtitle" />
             <span className="flex-1 text-left">
-              {date ? format(date, 'yyyy-MM-dd') : placeholder}
+              {date ? format(date, displayFormat) : placeholder}
             </span>
           </button>
         </PopoverTrigger>

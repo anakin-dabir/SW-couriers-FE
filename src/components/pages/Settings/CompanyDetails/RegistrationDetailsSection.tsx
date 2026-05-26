@@ -4,56 +4,57 @@ import type {
   GeneralSettingsState,
   UpdateGeneralSettings,
 } from '@/components/pages/Settings/CompanyDetails/types';
+import { SETTINGS_FORM_SECTION_LABEL_CLASS } from '@/lib/settingsUi';
+import {
+  portalFieldInputClass,
+  portalFieldLabelClass,
+  portalRequiredMarkClass,
+} from '@/lib/portalTheme';
 
 interface RegistrationDetailsSectionProps {
   generalSettings: GeneralSettingsState;
   updateGeneral: UpdateGeneralSettings;
   fieldErrors?: Record<string, string>;
+  readOnly?: boolean;
 }
+
+const RequiredMark = (): React.JSX.Element => <span className={portalRequiredMarkClass}> *</span>;
 
 export default function RegistrationDetailsSection({
   generalSettings,
   updateGeneral,
   fieldErrors,
+  readOnly = false,
 }: RegistrationDetailsSectionProps): React.JSX.Element {
+  const inputClass = portalFieldInputClass(readOnly);
+
   return (
     <section className="space-y-4">
-      <Typography
-        variant="caption"
-        weight="semibold"
-        className="tracking-wide text-gray-600 uppercase"
-      >
-        Registration Details
-      </Typography>
+      <Typography className={SETTINGS_FORM_SECTION_LABEL_CLASS}>Registration Details</Typography>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <Typography variant="label" className="text-xs">
-            Companies House Number <span className="text-red-600">*</span>
+          <Typography className={portalFieldLabelClass}>
+            Companies House Number
+            <RequiredMark />
           </Typography>
           <Input
             value={generalSettings.companiesHouseNumber}
             onChange={(e) => updateGeneral('companiesHouseNumber', e.target.value)}
             errorMessage={fieldErrors?.companiesHouseNumber}
+            readOnly={readOnly}
+            disabled={readOnly}
+            className={inputClass}
           />
         </div>
         <div className="space-y-2">
-          <Typography variant="label" className="text-xs">
-            EORI Number
-          </Typography>
+          <Typography className={portalFieldLabelClass}>EORI Number</Typography>
           <Input
             value={generalSettings.eoriNumber}
             onChange={(e) => updateGeneral('eoriNumber', e.target.value)}
             errorMessage={fieldErrors?.eoriNumber}
-          />
-        </div>
-        <div className="space-y-2">
-          <Typography variant="label" className="text-xs">
-            VAT Number
-          </Typography>
-          <Input
-            value={generalSettings.vatNumber}
-            onChange={(e) => updateGeneral('vatNumber', e.target.value)}
-            errorMessage={fieldErrors?.vatNumber}
+            readOnly={readOnly}
+            disabled={readOnly}
+            className={inputClass}
           />
         </div>
       </div>

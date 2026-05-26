@@ -2,8 +2,7 @@
    layout stays in lockstep; raw `<p>`/`<h2>` mirror the admin markup. Refactor to
    <Typography> if/when the design is reworked. */
 import type React from 'react';
-import type { jsPDF } from 'jspdf';
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AlertCircle, ArrowLeft, Download, FileText, Loader2, Plus, Printer } from 'lucide-react';
 import { Button } from '@/components/atoms/Button';
@@ -13,26 +12,15 @@ import { DeliveryInvoiceModal } from '@/components/pages/DeliveryDetail';
 import { SuccessBox } from '@/assets';
 import { cn } from '@/lib/utils';
 import { useGetOrderMasterLabelQuery } from '@/store/api';
+import {
+  downloadBlob,
+  type LabelSpec,
+  labelPdfFileName,
+  packageLabelsPdfFileName,
+  printBlob,
+  renderLabelPdfBlob,
+} from '@/lib/labelPdf';
 
-const LABEL_WIDTH_PX = 460;
-const LABEL_HEIGHT_PX = 740;
-
-const LABEL_CANVAS_SCALE = 2;
-
-/** Static lookup payload shown when simulating a QR or barcode scan on labels (preview / dev). */
-const MOCK_PACKAGE_LOOKUP_RESPONSE = {
-  success: true,
-  data: {
-    package_id: '7d537aa1-2afa-424a-ba8b-23b495891cd4',
-    reference_number: 'PKG-00000051',
-    status: 'OUT_FOR_DELIVERY',
-    matched_by: 'PACKAGE',
-    master_label_id: null,
-    packages_confirmed: 1,
-  },
-} as const;
-
-type SimulatedScanSource = 'qr' | 'barcode';
 type LabelAction =
   | 'download-master'
   | 'print-master'
@@ -48,14 +36,9 @@ function formatLabelNumber(value: number | string | null | undefined, suffix = '
   return suffix ? `${formatted} ${suffix}` : formatted;
 }
 
-function labelPdfFileName(prefix: 'master-label' | 'package-label', labelId: string): string {
-  return `${prefix}-${labelId.replace(/[^A-Za-z0-9._-]/g, '-')}.pdf`;
-}
-
-function packageLabelsPdfFileName(packageIds: string[]): string {
-  const validIds = packageIds.filter(Boolean);
-  const rawName = validIds.length > 0 ? `package-labels-${validIds.join('-')}` : 'package-labels';
-  return `${rawName.replace(/[^A-Za-z0-9._-]/g, '-')}.pdf`;
+function formatLabelText(value: string | null | undefined): string {
+  if (value === null || value === undefined || value.trim() === '') return '—';
+  return value;
 }
 
 export default function OrderLabelsPage(): React.JSX.Element {
@@ -72,13 +55,9 @@ export default function OrderLabelsPage(): React.JSX.Element {
       ? navState.orderReference
       : undefined;
   const isCreateOrderFlow = !id;
-  const [simulatedScanSource, setSimulatedScanSource] = useState<SimulatedScanSource | null>(null);
   const [labelAction, setLabelAction] = useState<LabelAction | null>(null);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
-  // Display label is the human-readable SWC-ORD-… reference; the master-label API
-  // takes the order UUID. PendingPickupPage surfaces both via location state.
-  const bookingId = id ?? stateOrderReference ?? stateOrderUuid ?? 'SWC-BK-01234';
   const labelsOrderId = id ?? stateOrderUuid ?? '';
   const {
     data: labelsData,
@@ -91,213 +70,116 @@ export default function OrderLabelsPage(): React.JSX.Element {
     () => labelPayload?.pickup_labels ?? [],
     [labelPayload?.pickup_labels]
   );
+  const bookingId = labelPayload?.order_id ?? id ?? stateOrderReference ?? stateOrderUuid ?? '—';
+  const orderReferenceText = formatLabelText(labelPayload?.order_id);
 
-  const packageLabels = useMemo(
-    () => pickupLabels.map((label, idx) => label.package_id || `PKG-${idx + 1}`),
-    [pickupLabels]
-  );
   const isLabelsBusy = Boolean(labelsOrderId) && (isLabelsLoading || isLabelsFetching);
   const hasLabels = Boolean(masterLabel) || pickupLabels.length > 0;
-  const qrValue = useMemo(
-    () => masterLabel?.qr_value || masterLabel?.master_label_id || bookingId,
-    [bookingId, masterLabel]
+  const masterLabelCode = formatLabelText(masterLabel?.master_label_id);
+  const masterQrValue = formatLabelText(masterLabel?.qr_value ?? masterLabel?.master_label_id);
+  const masterBarcodeValue = formatLabelText(
+    masterLabel?.barcode_value ?? masterLabel?.master_label_id
   );
-  const masterLabelCode =
-    masterLabel?.master_label_id ?? `ML-${bookingId.replace(/[^A-Za-z0-9]/g, '')}`;
-  const masterBarcodeValue = masterLabelCode;
-  const masterCardRef = useRef<HTMLDivElement | null>(null);
-  const packageCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  const createPdfFromElement = async (element: HTMLDivElement): Promise<jsPDF> => {
-    const [{ default: html2canvas }, { default: JsPDF }] = await Promise.all([
-      import('html2canvas'),
-      import('jspdf'),
-    ]);
+  const masterLabelSpec = useMemo<LabelSpec>(
+    () => ({
+      id: masterLabelCode,
+      labelType: 'master',
+      trackingId: orderReferenceText,
+      orderIdText: orderReferenceText,
+      qrValue: masterQrValue,
+      barcodeValue: masterBarcodeValue,
+      rightHeaderText: '',
+      primaryTitle: 'Pickup Address:',
+      primaryAddress: formatLabelText(masterLabel?.pickup_address),
+      packageIdText: `Master Label: ${masterLabelCode}`,
+      deliveryStopsText: formatLabelNumber(masterLabel?.delivery_stops_count),
+      totalPackagesText: formatLabelNumber(masterLabel?.total_packages),
+      weightText: formatLabelNumber(masterLabel?.total_weight_kg, 'kg'),
+      dimensionsText: '—',
+      volumeText: formatLabelNumber(masterLabel?.total_volume_m3, 'm³'),
+      returnAddressText: '—',
+    }),
+    [masterBarcodeValue, masterLabel, masterLabelCode, masterQrValue, orderReferenceText]
+  );
 
-    const canvas = await html2canvas(element, {
-      scale: LABEL_CANVAS_SCALE,
-      backgroundColor: '#ffffff',
-      useCORS: true,
-      width: LABEL_WIDTH_PX,
-      height: LABEL_HEIGHT_PX,
-      windowWidth: LABEL_WIDTH_PX,
-      windowHeight: LABEL_HEIGHT_PX,
-      scrollX: 0,
-      scrollY: 0,
-      onclone: (clonedDocument, clonedElement) => {
-        if (clonedDocument.documentElement) {
-          clonedDocument.documentElement.style.fontSize = '16px';
-        }
+  const packageLabelSpecs = useMemo<LabelSpec[]>(
+    () =>
+      pickupLabels.map((label) => {
+        const packageId = label.package_id;
+        const recipientLine = [label.recipient_name, label.recipient_address]
+          .filter(Boolean)
+          .join(' ');
+        return {
+          id: packageId,
+          labelType: 'package',
+          trackingId: formatLabelText(label.tracking_id),
+          qrValue: packageId,
+          barcodeValue: packageId,
+          rightHeaderText: formatLabelText(label.delivery_label),
+          primaryTitle: 'FROM:',
+          primaryAddress: formatLabelText(label.pickup_address),
+          secondaryTitle: 'TO:',
+          secondaryAddress: formatLabelText(recipientLine),
+          packageIdText: `Package ID: #${packageId}`,
+          weightText: formatLabelNumber(label.weight_kg, 'kg'),
+          dimensionsText: formatLabelText(label.dimensions_cm),
+          volumeText: formatLabelNumber(label.volume_m3, 'm³'),
+          returnAddressText: formatLabelText(label.return_address),
+          signatureRequired: label.signature_required,
+        };
+      }),
+    [pickupLabels]
+  );
 
-        if (clonedDocument.body) {
-          clonedDocument.body.style.margin = '0';
-          clonedDocument.body.style.padding = '0';
-        }
-        if (clonedElement instanceof HTMLElement) {
-          clonedElement.style.width = `${LABEL_WIDTH_PX}px`;
-          clonedElement.style.height = `${LABEL_HEIGHT_PX}px`;
-          clonedElement.style.minWidth = `${LABEL_WIDTH_PX}px`;
-          clonedElement.style.maxWidth = `${LABEL_WIDTH_PX}px`;
-          clonedElement.style.minHeight = `${LABEL_HEIGHT_PX}px`;
-          clonedElement.style.maxHeight = `${LABEL_HEIGHT_PX}px`;
-          clonedElement.style.transform = 'none';
-          clonedElement.style.transformOrigin = 'top left';
-          clonedElement.style.margin = '0';
-          clonedElement.style.position = 'fixed';
-          clonedElement.style.left = '0';
-          clonedElement.style.top = '0';
-        }
-      },
-    });
-    const imageData = canvas.toDataURL('image/png');
-    const JsPDFCtor = JsPDF as unknown as new (options: {
-      orientation: 'p' | 'portrait' | 'l' | 'landscape';
-      unit: 'px';
-      format: [number, number];
-      hotfixes: string[];
-      compress?: boolean;
-    }) => jsPDF;
-    const pdf = new JsPDFCtor({
-      orientation: 'p',
-      unit: 'px',
-      format: [LABEL_WIDTH_PX, LABEL_HEIGHT_PX],
-      hotfixes: ['px_scaling'],
-      compress: true,
-    });
-    pdf.addImage(imageData, 'PNG', 0, 0, LABEL_WIDTH_PX, LABEL_HEIGHT_PX, undefined, 'FAST');
-    return pdf;
-  };
+  const packageSpecsById = useMemo(() => {
+    const map = new Map<string, LabelSpec>();
+    for (const spec of packageLabelSpecs) map.set(spec.id, spec);
+    return map;
+  }, [packageLabelSpecs]);
 
-  const printPdf = (pdf: jsPDF, fileName: string): void => {
-    const title = fileName.replace(/\.pdf$/i, '');
-    pdf.setProperties({ title });
-
-    const blobUrl = pdf.output('bloburl');
-    const printWindow = window.open(blobUrl, '_blank');
-    if (!printWindow) {
-      return;
-    }
-
-    printWindow.document.title = fileName;
-    printWindow.onload = () => {
-      printWindow.document.title = fileName;
-      printWindow.focus();
-      printWindow.print();
-    };
-  };
+  const packageIds = useMemo(() => pickupLabels.map((label) => label.package_id), [pickupLabels]);
 
   const downloadMasterPdf = async (): Promise<void> => {
-    if (!masterCardRef.current) return;
-    const pdf = await createPdfFromElement(masterCardRef.current);
-    pdf.save(labelPdfFileName('master-label', masterLabelCode));
+    const blob = await renderLabelPdfBlob([masterLabelSpec], { title: masterLabelCode });
+    if (!blob) return;
+    downloadBlob(blob, labelPdfFileName('master-label', masterLabelCode));
   };
 
   const printMasterPdf = async (): Promise<void> => {
-    if (!masterCardRef.current) return;
-    const pdf = await createPdfFromElement(masterCardRef.current);
-    printPdf(pdf, labelPdfFileName('master-label', masterLabelCode));
+    const blob = await renderLabelPdfBlob([masterLabelSpec], { title: masterLabelCode });
+    if (!blob) return;
+    printBlob(blob, labelPdfFileName('master-label', masterLabelCode));
   };
 
   const downloadPackagePdf = async (packageId: string): Promise<void> => {
-    const element = packageCardRefs.current[packageId];
-    if (!element) return;
-    const pdf = await createPdfFromElement(element);
-    pdf.save(labelPdfFileName('package-label', packageId));
+    const spec = packageSpecsById.get(packageId);
+    if (!spec) return;
+    const blob = await renderLabelPdfBlob([spec], { title: packageId });
+    if (!blob) return;
+    downloadBlob(blob, labelPdfFileName('package-label', packageId));
   };
 
   const printPackagePdf = async (packageId: string): Promise<void> => {
-    const element = packageCardRefs.current[packageId];
-    if (!element) return;
-    const pdf = await createPdfFromElement(element);
-    printPdf(pdf, labelPdfFileName('package-label', packageId));
-  };
-
-  const createPdfForAllPackages = async (): Promise<jsPDF | null> => {
-    const [{ default: html2canvas }, { default: JsPDF }] = await Promise.all([
-      import('html2canvas'),
-      import('jspdf'),
-    ]);
-
-    const JsPDFCtor = JsPDF as unknown as new (options: {
-      orientation: 'p' | 'portrait' | 'l' | 'landscape';
-      unit: 'px';
-      format: [number, number];
-      hotfixes: string[];
-      compress?: boolean;
-    }) => jsPDF;
-    const pdf = new JsPDFCtor({
-      orientation: 'p',
-      unit: 'px',
-      format: [LABEL_WIDTH_PX, LABEL_HEIGHT_PX],
-      hotfixes: ['px_scaling'],
-      compress: true,
-    });
-    let hasPage = false;
-
-    for (const packageId of packageLabels) {
-      const element = packageCardRefs.current[packageId];
-      if (!element) continue;
-
-      const canvas = await html2canvas(element, {
-        scale: LABEL_CANVAS_SCALE,
-        backgroundColor: '#ffffff',
-        useCORS: true,
-        width: LABEL_WIDTH_PX,
-        height: LABEL_HEIGHT_PX,
-        windowWidth: LABEL_WIDTH_PX,
-        windowHeight: LABEL_HEIGHT_PX,
-        scrollX: 0,
-        scrollY: 0,
-        onclone: (clonedDocument, clonedElement) => {
-          // Pin the rem baseline (see createPdfFromElement comment).
-          if (clonedDocument.documentElement) {
-            clonedDocument.documentElement.style.fontSize = '16px';
-          }
-          if (clonedDocument.body) {
-            clonedDocument.body.style.margin = '0';
-            clonedDocument.body.style.padding = '0';
-          }
-          if (clonedElement instanceof HTMLElement) {
-            // See createPdfFromElement above — pin to 460×740 at (0,0) of the sandbox.
-            clonedElement.style.width = `${LABEL_WIDTH_PX}px`;
-            clonedElement.style.height = `${LABEL_HEIGHT_PX}px`;
-            clonedElement.style.minWidth = `${LABEL_WIDTH_PX}px`;
-            clonedElement.style.maxWidth = `${LABEL_WIDTH_PX}px`;
-            clonedElement.style.minHeight = `${LABEL_HEIGHT_PX}px`;
-            clonedElement.style.maxHeight = `${LABEL_HEIGHT_PX}px`;
-            clonedElement.style.transform = 'none';
-            clonedElement.style.transformOrigin = 'top left';
-            clonedElement.style.margin = '0';
-            clonedElement.style.position = 'fixed';
-            clonedElement.style.left = '0';
-            clonedElement.style.top = '0';
-          }
-        },
-      });
-      const imageData = canvas.toDataURL('image/png');
-      if (hasPage) {
-        pdf.addPage([LABEL_WIDTH_PX, LABEL_HEIGHT_PX], 'p');
-      }
-      pdf.addImage(imageData, 'PNG', 0, 0, LABEL_WIDTH_PX, LABEL_HEIGHT_PX, undefined, 'FAST');
-      hasPage = true;
-    }
-
-    if (hasPage) {
-      return pdf;
-    }
-    return null;
+    const spec = packageSpecsById.get(packageId);
+    if (!spec) return;
+    const blob = await renderLabelPdfBlob([spec], { title: packageId });
+    if (!blob) return;
+    printBlob(blob, labelPdfFileName('package-label', packageId));
   };
 
   const downloadAllPackagePdfs = async (): Promise<void> => {
-    const pdf = await createPdfForAllPackages();
-    if (!pdf) return;
-    pdf.save(packageLabelsPdfFileName(packageLabels));
+    if (packageLabelSpecs.length === 0) return;
+    const blob = await renderLabelPdfBlob(packageLabelSpecs, { title: 'Package Labels' });
+    if (!blob) return;
+    downloadBlob(blob, packageLabelsPdfFileName(packageIds));
   };
 
   const printAllPackagePdfs = async (): Promise<void> => {
-    const pdf = await createPdfForAllPackages();
-    if (!pdf) return;
-    printPdf(pdf, packageLabelsPdfFileName(packageLabels));
+    if (packageLabelSpecs.length === 0) return;
+    const blob = await renderLabelPdfBlob(packageLabelSpecs, { title: 'Package Labels' });
+    if (!blob) return;
+    printBlob(blob, packageLabelsPdfFileName(packageIds));
   };
 
   const runLabelAction = async (action: LabelAction, task: () => Promise<void>): Promise<void> => {
@@ -348,7 +230,7 @@ export default function OrderLabelsPage(): React.JSX.Element {
                   variant="outline"
                   className="min-h-11 h-11 border-[#E4E4E7] bg-white px-4 text-sm font-medium text-[#18181B] disabled:opacity-50"
                   onClick={() => setIsInvoiceModalOpen(true)}
-                  disabled={!bookingId}
+                  disabled={bookingId === '—'}
                 >
                   <FileText className="h-4 w-4" />
                   View Invoice
@@ -447,98 +329,23 @@ export default function OrderLabelsPage(): React.JSX.Element {
 
                 <PrintableLabelCard
                   labelType="master"
-                  cardRef={masterCardRef}
-                  trackingId={labelPayload?.order_id ?? bookingId}
-                  orderIdText={labelPayload?.order_id ?? bookingId}
-                  qrValue={qrValue}
+                  trackingId={orderReferenceText}
+                  orderIdText={orderReferenceText}
+                  qrValue={masterQrValue}
                   barcodeValue={masterBarcodeValue}
                   rightHeaderText=""
                   primaryTitle="Pickup Address:"
-                  primaryAddress={
-                    masterLabel?.pickup_address ?? 'John Smith 21 Baker Street London, W1U 3BW UK'
-                  }
+                  primaryAddress={formatLabelText(masterLabel?.pickup_address)}
                   packageIdText={`Master Label: ${masterLabelCode}`}
                   deliveryStopsText={formatLabelNumber(masterLabel?.delivery_stops_count)}
                   totalPackagesText={formatLabelNumber(masterLabel?.total_packages)}
-                  weightText={formatLabelNumber(masterLabel?.total_weight_kg ?? '13.8', 'kg')}
-                  dimensionsText="40 x 30 x 20 cm"
-                  volumeText={formatLabelNumber(masterLabel?.total_volume_m3 ?? '0.18', 'm³')}
-                  returnAddressText="SW Couriers, Unit 25, Thompson Dr, Birmingham B24 8HZ"
-                  onSimulateQrScan={() => setSimulatedScanSource('qr')}
-                  onSimulateBarcodeScan={() => setSimulatedScanSource('barcode')}
+                  weightText={formatLabelNumber(masterLabel?.total_weight_kg, 'kg')}
+                  dimensionsText="—"
+                  volumeText={formatLabelNumber(masterLabel?.total_volume_m3, 'm³')}
+                  returnAddressText="—"
                 />
               </div>
             </div>
-            {simulatedScanSource !== null ? (
-              <div className="border-t border-[#E4E4E7] bg-[#FAFCFF] px-6 py-4">
-                <div className="mx-auto flex max-w-3xl flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[#0F54C7]">
-                      Scan lookup (simulated)
-                    </p>
-                    <p className="mt-1 text-sm text-[#464649]">
-                      Triggered by{' '}
-                      <span className="font-semibold text-[#18181B]">
-                        {simulatedScanSource === 'qr' ? 'QR code' : 'Barcode'}
-                      </span>{' '}
-                      scan — static response:
-                    </p>
-                    <dl className="mt-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-                      <div className="flex flex-col gap-0.5">
-                        <dt className="text-xs font-medium text-[#858594]">package_id</dt>
-                        <dd className="font-mono text-[13px] text-[#18181B]">
-                          {MOCK_PACKAGE_LOOKUP_RESPONSE.data.package_id}
-                        </dd>
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        <dt className="text-xs font-medium text-[#858594]">reference_number</dt>
-                        <dd className="font-semibold text-[#18181B]">
-                          {MOCK_PACKAGE_LOOKUP_RESPONSE.data.reference_number}
-                        </dd>
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        <dt className="text-xs font-medium text-[#858594]">status</dt>
-                        <dd className="text-[#18181B]">
-                          {MOCK_PACKAGE_LOOKUP_RESPONSE.data.status}
-                        </dd>
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        <dt className="text-xs font-medium text-[#858594]">matched_by</dt>
-                        <dd className="text-[#18181B]">
-                          {MOCK_PACKAGE_LOOKUP_RESPONSE.data.matched_by}
-                        </dd>
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        <dt className="text-xs font-medium text-[#858594]">master_label_id</dt>
-                        <dd className="text-[#18181B]">
-                          {MOCK_PACKAGE_LOOKUP_RESPONSE.data.master_label_id === null
-                            ? 'null'
-                            : MOCK_PACKAGE_LOOKUP_RESPONSE.data.master_label_id}
-                        </dd>
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        <dt className="text-xs font-medium text-[#858594]">packages_confirmed</dt>
-                        <dd className="text-[#18181B]">
-                          {String(MOCK_PACKAGE_LOOKUP_RESPONSE.data.packages_confirmed)}
-                        </dd>
-                      </div>
-                    </dl>
-                    <p className="mt-3 text-xs font-medium text-[#858594]">
-                      success: {String(MOCK_PACKAGE_LOOKUP_RESPONSE.success)}
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-9 shrink-0 border-[#E4E4E7] bg-white text-[#18181B]"
-                    onClick={() => setSimulatedScanSource(null)}
-                  >
-                    Dismiss
-                  </Button>
-                </div>
-              </div>
-            ) : null}
             <Separator />
 
             <section className="space-y-6 px-6 pb-6">
@@ -593,38 +400,28 @@ export default function OrderLabelsPage(): React.JSX.Element {
               </div>
 
               <div className="grid gap-6 xl:grid-cols-3">
-                {packageLabels.map((packageId, index) => {
-                  const label = pickupLabels[index];
+                {pickupLabels.map((label) => {
+                  const packageId = label.package_id;
+                  const recipientLine = [label.recipient_name, label.recipient_address]
+                    .filter(Boolean)
+                    .join(' ');
                   return (
                     <PrintableLabelCard
                       key={packageId}
-                      cardRef={(element) => {
-                        packageCardRefs.current[packageId] = element;
-                      }}
-                      trackingId={label?.tracking_id ?? `SWBHM-9845${23 + index}`}
+                      trackingId={formatLabelText(label.tracking_id)}
                       qrValue={packageId}
                       barcodeValue={packageId}
-                      rightHeaderText={label?.delivery_label ?? '5 Days Delivery'}
+                      rightHeaderText={formatLabelText(label.delivery_label)}
                       primaryTitle="FROM:"
-                      primaryAddress={
-                        label?.pickup_address ??
-                        'UrbanNest Home Ltd 12 Industrial Road Manchester, M1 2AB'
-                      }
+                      primaryAddress={formatLabelText(label.pickup_address)}
                       secondaryTitle="TO:"
-                      secondaryAddress={
-                        label
-                          ? `${label.recipient_name} ${label.recipient_address}`
-                          : 'John Smith 21 Baker Street London, W1U 3BW UK'
-                      }
+                      secondaryAddress={formatLabelText(recipientLine)}
                       packageIdText={`Package ID: #${packageId}`}
-                      weightText={`${label?.weight_kg ?? '2.3'} kg`}
-                      dimensionsText={label?.dimensions_cm ?? '40 x 30 x 25 cm'}
-                      volumeText={formatLabelNumber(label?.volume_m3 ?? '0.03', 'm³')}
-                      returnAddressText={
-                        label?.return_address ??
-                        'SW Couriers, Unit 25, Thompson Dr, Birmingham B24 8HZ'
-                      }
-                      signatureRequired={label?.signature_required ?? true}
+                      weightText={formatLabelNumber(label.weight_kg, 'kg')}
+                      dimensionsText={formatLabelText(label.dimensions_cm)}
+                      volumeText={formatLabelNumber(label.volume_m3, 'm³')}
+                      returnAddressText={formatLabelText(label.return_address)}
+                      signatureRequired={label.signature_required}
                       showActions
                       actionsDisabled={labelAction !== null}
                       downloadPending={labelAction === `download-package:${packageId}`}
@@ -639,8 +436,6 @@ export default function OrderLabelsPage(): React.JSX.Element {
                           printPackagePdf(packageId)
                         )
                       }
-                      onSimulateQrScan={() => setSimulatedScanSource('qr')}
-                      onSimulateBarcodeScan={() => setSimulatedScanSource('barcode')}
                     />
                   );
                 })}

@@ -26,7 +26,7 @@ export default function AccountsDetailsPage(): React.JSX.Element {
   const orgPaymentMethods = paymentDetails?.payment_methods;
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-6">
+    <div className="flex min-w-0 flex-col gap-6">
       {paymentDetailsLoading ? (
         <Typography variant="body" color="muted" className="py-4 text-center">
           Loading payment settings…

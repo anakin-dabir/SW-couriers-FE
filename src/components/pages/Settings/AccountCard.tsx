@@ -1,5 +1,6 @@
 import type { Account } from '@/types/account';
 import Typography from '@/components/atoms/Typography';
+import { detectCardBrand } from '@/lib/paymentCards';
 import { cn } from '@/lib/utils';
 
 export interface AccountCardProps {
@@ -11,16 +12,50 @@ export interface AccountCardProps {
 
 const patternStyles: Record<NonNullable<Account['pattern']>, string> = {
   diagonal:
-    'repeating-linear-gradient(135deg, transparent, transparent 4px, rgba(255,255,255,0.03) 4px, rgba(255,255,255,0.03) 8px)',
+    'repeating-linear-gradient(135deg, transparent, transparent 6px, rgba(255,255,255,0.04) 6px, rgba(255,255,255,0.04) 12px), linear-gradient(145deg, #1f2228 0%, #14161a 100%)',
   lines:
-    'repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.04) 2px, rgba(255,255,255,0.04) 4px)',
+    'repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(255,255,255,0.05) 3px, rgba(255,255,255,0.05) 6px), linear-gradient(145deg, #1f2228 0%, #14161a 100%)',
   circles:
-    'radial-gradient(circle at 20% 50%, rgba(255,255,255,0.05) 0%, transparent 50%), radial-gradient(circle at 80% 50%, rgba(255,255,255,0.05) 0%, transparent 50%)',
+    'radial-gradient(circle at 18% 42%, rgba(255,255,255,0.06) 0%, transparent 42%), radial-gradient(circle at 82% 58%, rgba(255,255,255,0.05) 0%, transparent 40%), linear-gradient(145deg, #1f2228 0%, #14161a 100%)',
 };
 
+function CardBrandLogo({ cardType }: { cardType: string }): React.JSX.Element {
+  const brand = detectCardBrand(cardType);
+
+  if (brand === 'mastercard') {
+    return (
+      <div className="flex -space-x-2.5" aria-hidden>
+        <span className="inline-block size-7 rounded-full bg-[#EB001B]" />
+        <span className="inline-block size-7 rounded-full bg-[#F79E1B]" />
+      </div>
+    );
+  }
+
+  if (brand === 'visa') {
+    return (
+      <span className="text-lg font-bold italic tracking-wide text-white" aria-hidden>
+        VISA
+      </span>
+    );
+  }
+
+  if (brand === 'amex') {
+    return (
+      <span className="text-sm font-bold tracking-wider text-white" aria-hidden>
+        AMEX
+      </span>
+    );
+  }
+
+  return (
+    <span className="text-xs font-semibold uppercase tracking-wider text-white/90" aria-hidden>
+      CARD
+    </span>
+  );
+}
+
 /**
- * Credit/debit card style card for Available Cards carousel.
- * Dark background, pattern, contactless icon, Default badge, brand logo, number, name, expiry.
+ * Saved payment card visual for Settings → Account Details carousel (Figma).
  */
 export default function AccountCard({
   account,
@@ -28,75 +63,43 @@ export default function AccountCard({
   className,
 }: AccountCardProps): React.JSX.Element {
   const pattern = account.pattern ?? 'diagonal';
-  const bgPattern = patternStyles[pattern];
   const isLarge = size === 'large';
-  const normalizedType = account.card_type.toLowerCase();
-  const cardTypeLabel = normalizedType.replace(/[_-]+/g, ' ').toUpperCase();
 
   return (
     <div
       className={cn(
-        'relative h-full w-full overflow-hidden rounded-2xl border border-gray-700/50 bg-gray-800 text-white shadow-lg',
+        'relative w-full overflow-hidden rounded-2xl border border-[#2A2F38] text-white shadow-[0_8px_24px_rgba(0,0,0,0.18)]',
         'flex flex-col justify-between transition-all duration-300 ease-out',
-        isLarge ? 'min-h-[250px] p-6' : 'min-h-[220px] p-5',
+        isLarge ? 'min-h-[196px] p-5' : 'min-h-[180px] p-4',
         className
       )}
-      style={{
-        backgroundImage: bgPattern,
-      }}
+      style={{ background: patternStyles[pattern] }}
     >
-      {/* Top row: default chip left, dynamic card type right */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-3">
         {account.isDefault ? (
-          <span className="rounded-full bg-white/20 px-2.5 py-1 text-xs font-medium text-white">
-            Default Card
+          <span className="rounded-full border border-white/20 bg-white/15 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+            DEFAULT CARD
           </span>
         ) : (
           <span />
         )}
-        {normalizedType.includes('master') ? (
-          <div className="flex -space-x-2" aria-label={cardTypeLabel}>
-            <span className="inline-block h-6 w-6 rounded-full bg-[#eb001b]" aria-hidden />
-            <span className="inline-block h-6 w-6 rounded-full bg-[#f79e1b]" aria-hidden />
-          </div>
-        ) : (
-          <span className="text-sm font-semibold tracking-wider text-white">{cardTypeLabel}</span>
-        )}
+        <CardBrandLogo cardType={account.card_type} />
       </div>
 
-      {/* Card number */}
-      <Typography
-        component="p"
-        variant="body"
-        className={cn(
-          'font-mono tracking-widest text-white transition-[font-size] duration-300 ease-out',
-          isLarge ? 'text-xl' : 'text-lg'
-        )}
-      >
-        {account.cardNumber}
-      </Typography>
-
-      {/* Bottom row: name left, expiry right */}
-      <div className="flex items-end justify-between">
+      <div className="mt-auto space-y-1 pt-8">
         <Typography
           component="p"
           variant="body"
-          className={cn(
-            'font-medium text-white/95 transition-[font-size] duration-300 ease-out',
-            isLarge ? 'text-base' : 'text-sm'
-          )}
+          className={cn('font-medium tracking-wide text-white', isLarge ? 'text-base' : 'text-sm')}
         >
-          {account.cardholderName}
+          {account.cardNumber}
         </Typography>
         <Typography
           component="p"
           variant="body"
-          className={cn(
-            'text-white/90 transition-[font-size] duration-300 ease-out',
-            isLarge ? 'text-base' : 'text-sm'
-          )}
+          className={cn('text-white/85', isLarge ? 'text-sm' : 'text-xs')}
         >
-          Exp {account.expiry}
+          Expires {account.expiry}
         </Typography>
       </div>
     </div>

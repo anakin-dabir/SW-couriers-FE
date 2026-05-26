@@ -2,16 +2,24 @@ import type { ReactNode } from 'react';
 import { CreditCard, Wallet } from 'lucide-react';
 import Typography from '@/components/atoms/Typography';
 import {
-  ACCOUNTS_DETAILS_SECTION_CLASS,
   formatBillingScheduleLabel,
   formatGbpAmount,
   indexPaymentMethodsByModel,
 } from '@/lib/paymentSettings';
+import {
+  PAYMENT_MUTED_PANEL_CLASS,
+  PAYMENT_STAT_LABEL_CLASS,
+  PAYMENT_STAT_VALUE_CLASS,
+} from '@/lib/paymentSettingsUi';
+import { portalColors } from '@/lib/portalTheme';
+import { SETTINGS_FORM_CARD_CLASS } from '@/lib/settingsUi';
 import type {
   OrganizationPaymentDetailsDto,
   OrganizationPaymentMethodDto,
 } from '@/store/api/homeDashboardApi';
+import { cn } from '@/lib/utils';
 import BillingScheduleRow from './BillingScheduleRow';
+import PaymentSectionHeader from './PaymentSectionHeader';
 
 interface CreditAccountSectionProps {
   paymentDetails: OrganizationPaymentDetailsDto | undefined;
@@ -31,29 +39,22 @@ export default function CreditAccountSection({
   const utilization = Math.max(0, Math.min(paymentDetails?.credit_utilization_pct ?? 0, 100));
 
   return (
-    <section className={ACCOUNTS_DETAILS_SECTION_CLASS}>
-      <div className="border-b border-[#E6E8EE] pb-4">
-        <Typography
-          variant="h4"
-          weight="semibold"
-          className="text-[2rem] leading-none text-[#1E2533]"
-        >
-          Credit Account
-        </Typography>
-        <Typography variant="body" color="muted" className="mt-2 text-[#6B7280]">
-          Use your approved credit limit to place orders and pay via invoice.
-        </Typography>
-      </div>
+    <section className={SETTINGS_FORM_CARD_CLASS}>
+      <PaymentSectionHeader
+        title="Credit Account"
+        description="Use your approved credit limit to place orders and pay via invoice."
+      />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="rounded-xl border border-[#E2E6EE] bg-[#F7F8FB] p-4">
-          <Typography variant="body" className="mb-2 text-sm text-[#6B7280]">
-            Utilization
-          </Typography>
-          <Typography variant="h4" weight="semibold" className="text-3xl text-[#18181B]">
+      <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className={PAYMENT_MUTED_PANEL_CLASS}>
+          <Typography className={PAYMENT_STAT_LABEL_CLASS}>Utilization</Typography>
+          <Typography className="mt-1 text-3xl font-semibold" style={{ color: portalColors.text }}>
             {utilization.toFixed(1)}%
           </Typography>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#E5E7EB]">
+          <div
+            className="mt-3 h-2 overflow-hidden rounded-full"
+            style={{ backgroundColor: portalColors.progressTrack }}
+          >
             <div
               className="h-full rounded-full bg-gradient-to-r from-[#22C55E] to-[#86EFAC]"
               style={{ width: `${utilization}%` }}
@@ -63,23 +64,23 @@ export default function CreditAccountSection({
         <BillingScheduleRow value={billingSchedule} />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
         <StatCard
           label="Credit Limit"
           value={formatGbpAmount(paymentDetails?.credit_limit)}
-          icon={<CreditCard className="h-5 w-5 text-[#2563EB]" />}
+          icon={<CreditCard className="size-5 text-[#2563EB]" />}
           iconBg="bg-[#DBEAFE]"
         />
         <StatCard
           label="Outstanding Balance"
           value={formatGbpAmount(paymentDetails?.used_credit)}
-          icon={<Wallet className="h-5 w-5 text-[#EA580C]" />}
+          icon={<Wallet className="size-5 text-[#EA580C]" />}
           iconBg="bg-[#FFEDD5]"
         />
         <StatCard
           label="Available Credit"
           value={formatGbpAmount(paymentDetails?.available_credit)}
-          icon={<CreditCard className="h-5 w-5 text-[#16A34A]" />}
+          icon={<CreditCard className="size-5" style={{ color: portalColors.success }} />}
           iconBg="bg-[#DCFCE7]"
         />
       </div>
@@ -100,19 +101,15 @@ function StatCard({
 }): React.JSX.Element {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-[#E5E7EB] bg-white p-4">
-      <div className={cnIcon(iconBg)}>{icon}</div>
+      <div className={cn('flex size-10 shrink-0 items-center justify-center rounded-lg', iconBg)}>
+        {icon}
+      </div>
       <div>
-        <Typography variant="caption" className="text-xs text-[#6B7280]">
+        <Typography variant="caption" className={PAYMENT_STAT_LABEL_CLASS}>
           {label}
         </Typography>
-        <Typography variant="body" weight="semibold" className="text-lg text-[#18181B]">
-          {value}
-        </Typography>
+        <Typography className={PAYMENT_STAT_VALUE_CLASS}>{value}</Typography>
       </div>
     </div>
   );
-}
-
-function cnIcon(bg: string): string {
-  return `flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${bg}`;
 }

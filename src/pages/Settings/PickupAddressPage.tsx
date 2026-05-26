@@ -3,15 +3,14 @@ import { ChevronDown, ChevronUp, Save, Trash2, UserPlus } from 'lucide-react';
 import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/atoms/Button';
 import { Input } from '@/components/atoms/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/atoms/select';
-import { Card, CardContent } from '@/components/molecules/card';
 import { PermissionAccessMatrix } from '@/components/organisms/PermissionAccessMatrix';
+import {
+  ContactFieldLabel,
+  ContactPhoneField,
+  ContactRoleSelect,
+  ReadOnlyRoleDisplay,
+  USER_CONTACTS_NESTED_CARD_CLASS,
+} from '@/components/pages/Settings/UserContacts/contactFormUi';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +18,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/atoms/dialog';
+import {
+  SETTINGS_DISCARD_BTN_CLASS,
+  SETTINGS_FORM_CARD_CLASS,
+  SETTINGS_FORM_DIVIDER_CLASS,
+  SETTINGS_FORM_INPUT_CLASS,
+  SETTINGS_SAVE_BTN_CLASS,
+} from '@/lib/settingsUi';
 import { cn } from '@/lib/utils';
 import {
   API_RESOURCE_TO_PERMISSION_UI_KEY,
@@ -27,6 +33,11 @@ import {
   type UiPermissionLevel,
 } from '@/lib/orgContactPermissions';
 import { TEAM_PLATFORM_ACCESS_ITEMS } from '@/lib/teamPlatformAccess';
+import {
+  canManageUserContacts,
+  canViewUserContacts,
+  findCurrentUserOrgContact,
+} from '@/lib/userContactsAccess';
 import { useAppSelector } from '@/store/hooks';
 import {
   useGetOrgContactsQuery,
@@ -122,6 +133,7 @@ export default function PickupAddressPage(): React.JSX.Element {
       null
   );
   const accessToken = useAppSelector((state: RootState) => state.auth.accessToken);
+  const currentUser = useAppSelector((state: RootState) => state.auth.user);
   const { data: contactsResponse, isFetching } = useGetOrgContactsQuery(
     { organizationId: organizationId ?? '' },
     { skip: !organizationId || !accessToken }
@@ -130,6 +142,18 @@ export default function PickupAddressPage(): React.JSX.Element {
   const [updateOrgContact, { isLoading: isUpdatingContact }] = useUpdateOrgContactMutation();
 
   const ownerContact = contactsResponse?.data?.owner ?? null;
+  const teamMembersFromApi = useMemo(
+    () => contactsResponse?.data?.team_members ?? [],
+    [contactsResponse?.data?.team_members]
+  );
+
+  const currentUserContact = useMemo(
+    () => findCurrentUserOrgContact(currentUser, ownerContact, teamMembersFromApi),
+    [currentUser, ownerContact, teamMembersFromApi]
+  );
+
+  const canView = canViewUserContacts(currentUser, currentUserContact);
+  const canManage = canManageUserContacts(currentUser, currentUserContact);
 
   const ownerBaseline = useMemo((): OwnerFields | null => {
     if (!ownerContact) return null;
@@ -157,7 +181,7 @@ export default function PickupAddressPage(): React.JSX.Element {
   const mappedMembers = useMemo(
     () =>
       (contactsResponse?.data?.team_members ?? []).map((member) =>
-        mapContactToMember(member, false)
+        mapContactToMember(member, true)
       ),
     [contactsResponse]
   );
@@ -300,6 +324,13 @@ export default function PickupAddressPage(): React.JSX.Element {
   const isSavingOwner = isUpdatingContact && savingMemberId === '__owner__';
 
   useEffect(() => {
+    if (!canManage) {
+      setSubheaderActions(null);
+      return () => {
+        setSubheaderActions(null);
+      };
+    }
+
     setSubheaderActions({
       onSave: handleSaveOwner,
       onDiscard: handleDiscardOwner,
@@ -320,6 +351,7 @@ export default function PickupAddressPage(): React.JSX.Element {
     ownerContact,
     ownerWorking,
     isSavingOwner,
+    canManage,
   ]);
 
   const addTeamMember = (): void => {
@@ -370,6 +402,15 @@ export default function PickupAddressPage(): React.JSX.Element {
   const deleteTargetLabel =
     pendingDeleteMember &&
     `${pendingDeleteMember.firstName} ${pendingDeleteMember.lastName}`.trim();
+
+  if (!isFetching && !canView) {
+    return (
+      <div className={cn(SETTINGS_FORM_CARD_CLASS, 'text-sm text-[#71717A]')}>
+        You do not have permission to view User &amp; Contacts. Ask your account owner to grant Team
+        Management read or write access.
+      </div>
+    );
+  }
 
   return (
     <>
@@ -450,131 +491,130 @@ export default function PickupAddressPage(): React.JSX.Element {
           </div>
         </DialogContent>
       </Dialog>
-      <div
-        className={cn(
-          'flex min-w-0 flex-1 flex-col gap-6 rounded-xl border border-gray-200 bg-gray-50 p-5'
-        )}
-      >
-        <Card
+      <div className="flex flex-col gap-6">
+        <div
           id={ownerContact?.id ? `team-contact-${ownerContact.id}` : undefined}
-          className="rounded-md border border-gray-200 bg-white shadow-none p-5"
+          className={SETTINGS_FORM_CARD_CLASS}
         >
-          <CardContent className="space-y-4 ">
-            <div className="space-y-1 border-b border-gray-200 pb-3">
-              <Typography variant="h4" weight="semibold" className="text-base text-gray-900">
-                User Contact Details
-              </Typography>
-              <Typography variant="caption" color="muted" className="text-sm">
-                Update your contact details to ensure you receive important system communications.
-              </Typography>
-            </div>
+          <div className="border-b border-[#F4F4F5] pb-4">
+            <Typography className="text-base font-semibold text-[#18181B]">
+              User Contact Details
+            </Typography>
+            <Typography className="mt-1 text-sm text-[#71717A]">
+              Update your contact details to ensure you receive important system communications.
+            </Typography>
+          </div>
 
-            <div className="space-y-1.5">
-              <Typography variant="label" color="muted" className="text-sm">
-                Contact Role
-              </Typography>
-              <Input
+          <div className="mt-5 space-y-4">
+            <div className="space-y-2">
+              <ContactFieldLabel>Contact Role</ContactFieldLabel>
+              <ReadOnlyRoleDisplay
                 value={
                   CONTACT_ROLE_LABEL[ownerContact?.contact_role ?? 'ACCOUNT_OWNER'] ??
                   'Owner Account'
                 }
-                readOnly
-                className="bg-gray-100 text-gray-600"
               />
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <Typography variant="label" color="muted" className="text-sm">
-                  First Name<span className="text-[#BE1E2D]">*</span>
-                </Typography>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <ContactFieldLabel required>First Name</ContactFieldLabel>
                 <Input
                   value={ownerDisplay?.firstName ?? ''}
-                  className="bg-white"
+                  className={cn(
+                    SETTINGS_FORM_INPUT_CLASS,
+                    !canManage && 'bg-[#FAFAFA] text-[#71717A]'
+                  )}
+                  readOnly={!canManage}
                   onChange={(e) =>
                     setOwnerWorking((prev) => ({
                       ...(prev ?? ownerBaseline!),
                       firstName: e.target.value,
                     }))
                   }
-                  disabled={!ownerBaseline}
+                  disabled={!canManage || !ownerBaseline}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Typography variant="label" color="muted" className="text-sm">
-                  Last Name<span className="text-[#BE1E2D]">*</span>
-                </Typography>
+              <div className="space-y-2">
+                <ContactFieldLabel required>Last Name</ContactFieldLabel>
                 <Input
                   value={ownerDisplay?.lastName ?? ''}
-                  className="bg-white"
+                  className={cn(
+                    SETTINGS_FORM_INPUT_CLASS,
+                    !canManage && 'bg-[#FAFAFA] text-[#71717A]'
+                  )}
+                  readOnly={!canManage}
                   onChange={(e) =>
                     setOwnerWorking((prev) => ({
                       ...(prev ?? ownerBaseline!),
                       lastName: e.target.value,
                     }))
                   }
-                  disabled={!ownerBaseline}
+                  disabled={!canManage || !ownerBaseline}
                 />
               </div>
-              <div className="space-y-1.5 md:col-span-2">
-                <Typography variant="label" color="muted" className="text-sm">
-                  Contact number<span className="text-[#BE1E2D]">*</span>
-                </Typography>
-                <Input
+              <div className="space-y-2">
+                <ContactFieldLabel required>Contact number</ContactFieldLabel>
+                <ContactPhoneField
                   value={ownerDisplay?.contactNumber ?? ''}
-                  className="bg-white"
-                  onChange={(e) =>
+                  readOnly={!canManage}
+                  disabled={!canManage || !ownerBaseline}
+                  onChange={(value) =>
                     setOwnerWorking((prev) => ({
                       ...(prev ?? ownerBaseline!),
-                      contactNumber: e.target.value,
+                      contactNumber: value,
                     }))
                   }
-                  disabled={!ownerBaseline}
                 />
               </div>
-              <div className="space-y-1.5 md:col-span-2">
-                <Typography variant="label" color="muted" className="text-sm">
-                  Email<span className="text-[#BE1E2D]">*</span>
-                </Typography>
+              <div className="space-y-2">
+                <ContactFieldLabel required>Email</ContactFieldLabel>
                 <Input
                   value={ownerContact?.email ?? ''}
                   readOnly
-                  className="bg-gray-100 text-gray-600"
+                  className={cn(SETTINGS_FORM_INPUT_CLASS, 'bg-[#FAFAFA] text-[#71717A]')}
                 />
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="rounded-md border border-gray-200 bg-white shadow-none p-4">
-          <CardContent className="space-y-4 ">
-            <div className="space-y-1 border-b border-gray-200 pb-3">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <Typography variant="h4" weight="semibold" className="text-base text-gray-900">
-                  Team Members
-                </Typography>
-                <Button type="button" variant="outline" size="sm" onClick={addTeamMember}>
-                  <UserPlus className="h-3.5 w-3.5" />
-                  Add new Team member
-                </Button>
-              </div>
-              <Typography variant="caption" color="muted" className="text-sm">
+        <div className={SETTINGS_FORM_CARD_CLASS}>
+          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#F4F4F5] pb-4">
+            <div className="min-w-0 space-y-1">
+              <Typography className="text-base font-semibold text-[#18181B]">
+                Team Members
+              </Typography>
+              <Typography className="text-sm text-[#71717A]">
                 Additional contacts created by the account owner to manage operations, logistics, or
                 billing.
               </Typography>
             </div>
+            {canManage ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 shrink-0 gap-1.5 border-[#E5E7EB] bg-white px-4 text-sm text-[#18181B] hover:bg-[#FAFAFA]"
+                onClick={addTeamMember}
+              >
+                <UserPlus className="size-4" />
+                Add new Team member
+              </Button>
+            ) : null}
+          </div>
 
-            {isFetching && (
-              <div className="rounded-md border border-gray-200 bg-white px-4 py-6 text-sm text-gray-500">
+          <div className="mt-5 space-y-4">
+            {isFetching ? (
+              <div className="rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] px-4 py-8 text-center text-sm text-[#71717A]">
                 Loading team members...
               </div>
-            )}
+            ) : null}
 
-            {!isFetching && teamMembers.length === 0 && (
-              <div className="rounded-md border border-gray-200 bg-white px-4 py-6 text-sm text-gray-500">
+            {!isFetching && teamMembers.length === 0 ? (
+              <div className="rounded-xl border border-[#E5E7EB] bg-[#FAFAFA] px-4 py-8 text-center text-sm text-[#71717A]">
                 No team members found.
               </div>
-            )}
+            ) : null}
 
             {teamMembers.map((member, index) => {
               const isDirty = dirtyIds.has(member.id);
@@ -582,175 +622,171 @@ export default function PickupAddressPage(): React.JSX.Element {
                 <div
                   key={member.id}
                   id={`team-contact-${member.id}`}
-                  className="rounded-md border border-gray-200 bg-white"
+                  className={USER_CONTACTS_NESTED_CARD_CLASS}
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 px-3 py-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#F4F4F5] px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span
-                        className="inline-block size-2 shrink-0 rounded-full bg-[#F97316]"
+                        className="inline-block size-2 shrink-0 rounded-full bg-[#F59E0B]"
                         aria-hidden
                       />
-                      <span className="text-xs font-semibold text-gray-900">
+                      <span className="text-sm font-semibold text-[#18181B]">
                         Contact # {index + 1}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      {isDirty && (
+                    {canManage ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        {isDirty ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className={cn(SETTINGS_DISCARD_BTN_CLASS, 'h-9 px-3 text-sm')}
+                            onClick={() => discardMember(member.id)}
+                            disabled={savingMemberId === member.id}
+                          >
+                            Discard
+                          </Button>
+                        ) : null}
+                        <Button
+                          type="button"
+                          className={cn(SETTINGS_SAVE_BTN_CLASS, 'h-9 px-3 text-sm')}
+                          onClick={() => void saveMember(member.id)}
+                          disabled={!isDirty || savingMemberId === member.id}
+                        >
+                          <Save className="size-4" />
+                          {savingMemberId === member.id ? 'Saving…' : 'Save changes'}
+                        </Button>
                         <Button
                           type="button"
                           variant="outline"
-                          size="sm"
-                          className="h-7 text-xs"
-                          onClick={() => discardMember(member.id)}
-                          disabled={savingMemberId === member.id}
+                          size="icon"
+                          className="size-9 border-[#FECACA] text-[#DC2626] hover:bg-[#FEF2F2]"
+                          onClick={() => openDeleteModal(member)}
+                          aria-label="Delete team member"
                         >
-                          Discard
+                          <Trash2 className="size-4" />
                         </Button>
-                      )}
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="h-7 bg-[#BE1E2D] text-xs text-white hover:bg-[#A21926]"
-                        onClick={() => void saveMember(member.id)}
-                        disabled={!isDirty || savingMemberId === member.id}
-                      >
-                        <Save className="h-3 w-3" />
-                        {savingMemberId === member.id ? 'Saving…' : 'Save changes'}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-7 border-red-200 px-2 text-red-600 hover:bg-red-50 hover:text-red-700"
-                        onClick={() => openDeleteModal(member)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
+                      </div>
+                    ) : null}
                   </div>
 
-                  <div className="space-y-4 p-3">
-                    <div className="space-y-3">
-                      <div className="space-y-1.5">
-                        <Typography variant="label" color="muted" className="text-sm">
-                          Contact Role
-                        </Typography>
-                        <Select
+                  <div className="space-y-5 p-4 sm:p-5">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <ContactFieldLabel>Contact Role</ContactFieldLabel>
+                        <ContactRoleSelect
                           value={member.role}
-                          onValueChange={(value) =>
+                          options={ROLE_OPTIONS}
+                          readOnly={!canManage}
+                          onChange={(value) =>
                             updateMember(member.id, { role: value as ContactRole })
                           }
-                        >
-                          <SelectTrigger className="h-10 bg-gray-100 text-sm">
-                            <SelectValue placeholder="Select role" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {ROLE_OPTIONS.map((role) => (
-                              <SelectItem key={role.value} value={role.value}>
-                                {role.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        />
                       </div>
 
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <div className="space-y-1.5">
-                          <Typography variant="label" color="muted" className="text-sm">
-                            First Name
-                          </Typography>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <ContactFieldLabel>First Name</ContactFieldLabel>
                           <Input
                             value={member.firstName}
-                            className="bg-gray-100"
+                            className={cn(
+                              SETTINGS_FORM_INPUT_CLASS,
+                              !canManage && 'bg-[#FAFAFA] text-[#71717A]'
+                            )}
+                            readOnly={!canManage}
                             onChange={(event) =>
                               updateMember(member.id, { firstName: event.target.value })
                             }
                           />
                         </div>
-                        <div className="space-y-1.5">
-                          <Typography variant="label" color="muted" className="text-sm">
-                            Last Name
-                          </Typography>
+                        <div className="space-y-2">
+                          <ContactFieldLabel>Last Name</ContactFieldLabel>
                           <Input
                             value={member.lastName}
-                            className="bg-gray-100"
+                            className={cn(
+                              SETTINGS_FORM_INPUT_CLASS,
+                              !canManage && 'bg-[#FAFAFA] text-[#71717A]'
+                            )}
+                            readOnly={!canManage}
                             onChange={(event) =>
                               updateMember(member.id, { lastName: event.target.value })
                             }
                           />
                         </div>
-                        <div className="space-y-1.5">
-                          <Typography variant="label" color="muted" className="text-sm">
-                            Contact Number
-                          </Typography>
-                          <Input
+                        <div className="space-y-2">
+                          <ContactFieldLabel>Contact number</ContactFieldLabel>
+                          <ContactPhoneField
                             value={member.contactNumber}
-                            className="bg-gray-100"
-                            onChange={(event) =>
-                              updateMember(member.id, { contactNumber: event.target.value })
-                            }
+                            readOnly={!canManage}
+                            onChange={(value) => updateMember(member.id, { contactNumber: value })}
                           />
                         </div>
-                        <div className="space-y-1.5">
-                          <Typography variant="label" color="muted" className="text-sm">
-                            Email
-                          </Typography>
+                        <div className="space-y-2">
+                          <ContactFieldLabel>Email</ContactFieldLabel>
                           <Input
                             value={member.email}
                             readOnly
-                            className="bg-gray-100 text-gray-600"
+                            className={cn(SETTINGS_FORM_INPUT_CLASS, 'bg-[#FAFAFA] text-[#71717A]')}
                           />
                         </div>
                       </div>
                     </div>
 
-                    <div className="border-t border-gray-200 pt-3">
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        className="flex cursor-pointer items-center justify-between"
-                        onClick={() =>
-                          updateMember(member.id, { accessExpanded: !member.accessExpanded })
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            updateMember(member.id, { accessExpanded: !member.accessExpanded });
-                          }
-                        }}
-                      >
-                        <div>
-                          <Typography
-                            variant="h4"
-                            weight="semibold"
-                            className="text-base text-gray-900"
-                          >
-                            Platform Access
-                          </Typography>
-                          <Typography variant="caption" color="muted" className="text-sm">
-                            Set the level of access this client has for each platform module.
-                          </Typography>
-                        </div>
-                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7">
-                          {member.accessExpanded ? (
-                            <ChevronUp className="h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
+                    <div className={SETTINGS_FORM_DIVIDER_CLASS} />
 
-                      {member.accessExpanded && (
+                    <div>
+                      {canManage ? (
+                        <button
+                          type="button"
+                          className="flex w-full items-start justify-between gap-3 text-left"
+                          onClick={() =>
+                            updateMember(member.id, { accessExpanded: !member.accessExpanded })
+                          }
+                        >
+                          <div className="min-w-0">
+                            <Typography className="text-base font-semibold text-[#18181B]">
+                              Platform Access
+                            </Typography>
+                            <Typography className="mt-1 text-sm text-[#71717A]">
+                              Set the level of access this client has for each platform module.
+                            </Typography>
+                          </div>
+                          <span className="flex size-8 shrink-0 items-center justify-center text-[#71717A]">
+                            {member.accessExpanded ? (
+                              <ChevronUp className="size-4" />
+                            ) : (
+                              <ChevronDown className="size-4" />
+                            )}
+                          </span>
+                        </button>
+                      ) : (
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <Typography className="text-base font-semibold text-[#18181B]">
+                              Platform Access
+                            </Typography>
+                            <Typography className="mt-1 text-sm text-[#71717A]">
+                              Set the level of access this client has for each platform module.
+                            </Typography>
+                          </div>
+                        </div>
+                      )}
+
+                      {(member.accessExpanded || !canManage) && (
                         <PermissionAccessMatrix
-                          className="mt-3"
+                          className="mt-4"
                           value={member.permissions}
-                          onChange={(itemKey, level) =>
-                            updateMember(member.id, {
-                              permissions: {
-                                ...member.permissions,
-                                [itemKey]: level,
-                              },
-                            })
+                          readOnly={!canManage}
+                          onChange={
+                            canManage
+                              ? (itemKey, level) =>
+                                  updateMember(member.id, {
+                                    permissions: {
+                                      ...member.permissions,
+                                      [itemKey]: level,
+                                    },
+                                  })
+                              : undefined
                           }
                         />
                       )}
@@ -759,8 +795,8 @@ export default function PickupAddressPage(): React.JSX.Element {
                 </div>
               );
             })}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </>
   );

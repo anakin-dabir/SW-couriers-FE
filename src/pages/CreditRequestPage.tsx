@@ -962,7 +962,8 @@ export default function CreditRequestPage(): React.JSX.Element {
                             disabled={!row.draftId}
                             onClick={() =>
                               void navigate(
-                                `/credit-request/new?draftId=${encodeURIComponent(row.draftId)}`
+                                `/credit-request/new?draftId=${encodeURIComponent(row.draftId)}`,
+                                { state: { returnTo: '/credit-request/drafts' } }
                               )
                             }
                           >

@@ -7,6 +7,7 @@ import { Button } from '@/components/atoms/Button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/molecules/tabs';
 import { LoadingScreen } from '@/components/organisms';
 import { cn } from '@/lib/utils';
+import { SETTINGS_CONTENT_PANEL_CLASS } from '@/lib/settingsUi';
 import { useAppSelector } from '@/store/hooks';
 import { useGetOrganizationProfileCompletionQuery } from '@/store/api/organizationProfileApi';
 import type { RootState } from '@/store/store';
@@ -37,7 +38,7 @@ function CircularProgress({ percent }: { percent: number }): React.JSX.Element {
 
   return (
     <div className="relative inline-flex items-center justify-center">
-      <svg width={size} height={size} className="-rotate-90">
+      <svg width={size} height={size} className="-rotate-90" aria-hidden>
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -66,7 +67,7 @@ function CircularProgress({ percent }: { percent: number }): React.JSX.Element {
 }
 
 /**
- * Settings layout: page header, tabs (URL-synced), main content (outlet), and Complete Your Profile sidebar on all tabs.
+ * Settings layout: page header, tabs (URL-synced), main content (outlet), profile sidebar.
  */
 export default function SettingsLayout(): React.JSX.Element {
   const navigate = useNavigate();
@@ -98,16 +99,8 @@ export default function SettingsLayout(): React.JSX.Element {
   };
 
   return (
-    <div className={cn('flex flex-col gap-6')}>
-      <PageHeader
-        title="Settings"
-        subtitle="Manage your account and preferences"
-        // actions={
-        //   <Button variant="default" size="sm" onClick={() => void navigate('/deliveries/pending')}>
-        //     New Pickup Request
-        //   </Button>
-        // }
-      />
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Settings" subtitle="Manage your account and preferences" />
 
       <Tabs value={activeValue} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full max-w-3xl grid-cols-4">
@@ -155,9 +148,9 @@ export default function SettingsLayout(): React.JSX.Element {
         </div>
       )}
 
-      <div className={cn('flex flex-col gap-6 lg:flex-row lg:items-start')}>
-        <div className={cn('min-w-0 flex-1')}>
-          <div className="mt-6">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        <div className="min-w-0 flex-1">
+          <div className={SETTINGS_CONTENT_PANEL_CLASS}>
             <Suspense fallback={<LoadingScreen />}>
               <Outlet context={outletContext} />
             </Suspense>
@@ -166,15 +159,13 @@ export default function SettingsLayout(): React.JSX.Element {
 
         <aside
           className={cn(
-            'w-full shrink-0 rounded-xl border border-gray-200 bg-gray-50 p-5 lg:w-120 mt-6',
-            'flex flex-col gap-6'
+            'mt-0 flex w-full shrink-0 flex-col gap-6 rounded-xl border border-gray-200 bg-gray-50 p-5 lg:w-120',
+            activeValue !== 'company-details' && activeValue !== 'user-contacts' && 'lg:mt-0'
           )}
         >
-          <div className="w-full text-center">
-            <Typography variant="h5" weight="semibold" align="center" className="text-gray-900">
-              Complete Your Profile
-            </Typography>
-          </div>
+          <Typography variant="h5" weight="semibold" align="center" className="text-gray-900">
+            Complete Your Profile
+          </Typography>
 
           <div className="flex justify-center">
             <CircularProgress percent={completionPercent} />

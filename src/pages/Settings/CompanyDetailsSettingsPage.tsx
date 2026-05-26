@@ -15,6 +15,7 @@ import {
 import { Card, CardContent } from '@/components/molecules/card';
 import { Typography } from '@/components/atoms';
 import { Button } from '@/components/atoms/Button';
+import type { SettingsOutletContext } from '@/components/templates/settingsOutletTypes';
 import {
   EMPTY_ADDRESS,
   GeneralInfoSection,
@@ -30,7 +31,6 @@ import {
   type MapPickerTarget,
   type PickupAddress,
 } from '@/components/pages/Settings/CompanyDetails';
-import type { SettingsOutletContext } from '@/components/templates/settingsOutletTypes';
 import {
   cloneGeneralSettingsState,
   mapGeneralSettingsToOrgProfileSavePayload,
@@ -42,7 +42,6 @@ import {
   buildOrgProfileServerFieldErrorMap,
   summarizeOrgProfileValidationDetailsForToast,
 } from '@/lib/orgProfileServerFieldMap';
-import { cn } from '@/lib/utils';
 import {
   flattenZodErrorToFieldMap,
   orgProfileClientSchema,
@@ -54,6 +53,7 @@ import {
 } from '@/store/api/organizationProfileApi';
 import { parseClientValidationFromFetchError } from '@/store/api/validationErrors';
 import { getErrorMessage, isFetchBaseQueryError } from '@/store/api/utils';
+import { canManageOrganizationSettings } from '@/lib/userContactsAccess';
 import { useAppSelector } from '@/store/hooks';
 import type { RootState } from '@/store/store';
 
@@ -74,6 +74,9 @@ export default function CompanyDetailsSettingsPage(): React.JSX.Element {
       null
   );
   const accessToken = useAppSelector((state: RootState) => state.auth.accessToken);
+  const currentUser = useAppSelector((state: RootState) => state.auth.user);
+  const canManage = canManageOrganizationSettings(currentUser);
+  const readOnly = !canManage;
   const organizationIdFromEnv =
     env.VITE_ORGANIZATION_ID.length > 0 ? env.VITE_ORGANIZATION_ID : null;
   const organizationId = useMemo(
@@ -92,7 +95,6 @@ export default function CompanyDetailsSettingsPage(): React.JSX.Element {
   const [serverFieldErrors, setServerFieldErrors] = useState<Record<string, string>>({});
   const logoInputRef = useRef<HTMLInputElement>(null);
   const { setSubheaderActions } = useOutletContext<SettingsOutletContext>();
-
   const skipProfile = !organizationId || !accessToken;
   const profileQueryArg = organizationId && accessToken ? { organizationId } : skipToken;
   const {
@@ -247,6 +249,10 @@ export default function CompanyDetailsSettingsPage(): React.JSX.Element {
   ]);
 
   useEffect(() => {
+    if (!canManage) {
+      setSubheaderActions(null);
+      return;
+    }
     setSubheaderActions({
       onSave: handleSave,
       onDiscard: handleDiscard,
@@ -258,6 +264,7 @@ export default function CompanyDetailsSettingsPage(): React.JSX.Element {
       setSubheaderActions(null);
     };
   }, [
+    canManage,
     setSubheaderActions,
     handleSave,
     handleDiscard,
@@ -412,11 +419,7 @@ export default function CompanyDetailsSettingsPage(): React.JSX.Element {
   }
 
   return (
-    <div
-      className={cn(
-        'flex min-w-0 flex-1 flex-col gap-6 rounded-xl border border-gray-200 bg-gray-50 p-5'
-      )}
-    >
+    <>
       {!organizationId && (
         <Typography variant="caption" color="muted" className="text-amber-800">
           No organization is linked to this account. General settings cannot be loaded from the
@@ -424,7 +427,7 @@ export default function CompanyDetailsSettingsPage(): React.JSX.Element {
         </Typography>
       )}
       {rootServerMessages.length > 0 ? (
-        <div className="rounded-lg border border-red-200 bg-red-50/90 p-4 space-y-2" role="alert">
+        <div className="space-y-2 rounded-lg border border-red-200 bg-red-50/90 p-4" role="alert">
           {rootServerMessages.map((message, index) => (
             <Typography
               key={`${index}-${message.slice(0, 48)}`}
@@ -441,32 +444,37 @@ export default function CompanyDetailsSettingsPage(): React.JSX.Element {
           Logo will be removed when you save changes.
         </Typography>
       ) : null}
+
       <LogoUploadSection
         uploadedLogoFile={uploadedLogoFile}
         setUploadedLogoFile={setUploadedLogoFile}
         logoInputRef={logoInputRef}
         remoteLogoUrl={logoMarkedForRemoval ? null : remoteLogoUrl}
         onClearRemoteLogo={
-          remoteLogoUrl
+          remoteLogoUrl && canManage
             ? () => {
                 setLogoMarkedForRemoval(true);
                 setUploadedLogoFileRaw(null);
               }
             : undefined
         }
+        readOnly={readOnly}
       />
+
       <Card className="max-w-full">
         <CardContent className="space-y-8 p-5">
           <GeneralInfoSection
             generalSettings={generalSettings}
             updateGeneral={updateGeneral}
             fieldErrors={serverFieldErrors}
+            readOnly={readOnly}
           />
           <hr className="border-gray-200" />
           <RegistrationDetailsSection
             generalSettings={generalSettings}
             updateGeneral={updateGeneral}
             fieldErrors={serverFieldErrors}
+            readOnly={readOnly}
           />
           <hr className="border-gray-200" />
           <RegisteredAddressSection
@@ -487,6 +495,7 @@ export default function CompanyDetailsSettingsPage(): React.JSX.Element {
             onAddressChange={(field, value) => updateAddress('registeredAddress', field, value)}
             onPatchCoordinates={patchRegisteredCoordinates}
             fieldErrors={registeredAddressFieldErrors}
+            readOnly={readOnly}
           />
           <hr className="border-gray-200" />
           <TradingAddressSection
@@ -511,6 +520,7 @@ export default function CompanyDetailsSettingsPage(): React.JSX.Element {
             onAddressChange={(field, value) => updateAddress('tradingAddress', field, value)}
             onPatchCoordinates={patchTradingCoordinates}
             tradingFieldErrors={tradingAddressFieldErrors}
+            readOnly={readOnly}
           />
           <hr className="border-gray-200" />
           <PickupAddressesSection
@@ -524,10 +534,11 @@ export default function CompanyDetailsSettingsPage(): React.JSX.Element {
             onSetDefaultPickup={setDefaultPickupAddress}
             onPatchPickup={patchPickup}
             serverFieldErrors={serverFieldErrors}
+            readOnly={readOnly}
           />
         </CardContent>
       </Card>
-    </div>
+    </>
   );
 }
 

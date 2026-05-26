@@ -51,10 +51,12 @@ export function isActivePaymentCard(card: PaymentMethodResponse): boolean {
 export function mapPaymentMethodToAccount(pm: PaymentMethodResponse, index: number): Account {
   const last = pm.last_four?.trim() || '****';
   const cardType = pm.card_type?.trim().toUpperCase() || 'CARD';
+  const brand = detectCardBrand(cardType);
+  const brandLabel = formatCardBrandLabel(brand);
   return {
     id: pm.id,
     cardholderName: pm.cardholder_name?.trim() || 'Cardholder',
-    cardNumber: `**** **** **** ${last}`,
+    cardNumber: `${brandLabel} •••• •••• •••• ${last}`,
     expiry: formatCardExpiry(pm.expiry_month, pm.expiry_year),
     card_type: cardType,
     isDefault: pm.is_default,

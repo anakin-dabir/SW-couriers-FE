@@ -13,6 +13,12 @@ import type { MapPickedAddress } from '@/components/molecules/AddressMapPicker';
 import { REGION_CITY_MAP, UK_REGIONS } from './constants';
 import { resolveCity, resolveRegion } from './addressUtils';
 import type { AddressFields } from './types';
+import {
+  portalFieldInputClass,
+  portalFieldLabelClass,
+  portalRequiredMarkClass,
+  portalSelectTriggerClass,
+} from '@/lib/portalTheme';
 import { cn } from '@/lib/utils';
 
 interface UkAddressFieldsProps {
@@ -25,7 +31,7 @@ interface UkAddressFieldsProps {
   fieldErrors?: Record<string, string>;
 }
 
-const RequiredMark = (): React.JSX.Element => <span className="text-red-600"> *</span>;
+const RequiredMark = (): React.JSX.Element => <span className={portalRequiredMarkClass}> *</span>;
 
 export default function UkAddressFields({
   prefix,
@@ -79,9 +85,9 @@ export default function UkAddressFields({
   };
 
   return (
-    <div className="grid gap-3 md:grid-cols-2">
+    <div className="grid gap-4 md:grid-cols-2">
       <div className="space-y-2">
-        <Typography variant="label" className="text-xs text-form-title">
+        <Typography className={portalFieldLabelClass}>
           Address Line 1
           <RequiredMark />
         </Typography>
@@ -98,26 +104,28 @@ export default function UkAddressFields({
         ) : null}
       </div>
       <div className="space-y-2">
-        <Typography variant="label" className="text-xs text-form-title">
-          Address Line 2
-        </Typography>
+        <Typography className={portalFieldLabelClass}>Address Line 2</Typography>
         <Input
           id={`${prefix}-line2`}
           value={address.line2}
           onChange={(event) => onChange('line2', event.target.value)}
-          className={cn('h-8', disabled && 'bg-gray-100 text-gray-400')}
+          className={portalFieldInputClass(disabled)}
           disabled={disabled}
           errorMessage={fieldErrors?.line2}
         />
       </div>
       <div className="space-y-2">
-        <Typography variant="label" className="text-xs text-form-title">
-          Country
-        </Typography>
-        <Input id={`${prefix}-country`} value="United Kingdom" readOnly disabled />
+        <Typography className={portalFieldLabelClass}>Country</Typography>
+        <Input
+          id={`${prefix}-country`}
+          value="United Kingdom"
+          readOnly
+          disabled
+          className={portalFieldInputClass(true)}
+        />
       </div>
       <div className="space-y-2">
-        <Typography variant="label" className="text-xs text-form-title">
+        <Typography className={portalFieldLabelClass}>
           Region
           {required ? <RequiredMark /> : null}
         </Typography>
@@ -132,8 +140,8 @@ export default function UkAddressFields({
           <SelectTrigger
             id={`${prefix}-region`}
             className={cn(
-              'h-8',
-              disabled && 'bg-gray-100 text-gray-400',
+              portalSelectTriggerClass,
+              disabled && 'bg-[#FAFAFA] text-[#71717A]',
               fieldErrors?.region && 'border-red-500 focus-visible:ring-red-500/20'
             )}
           >
@@ -154,7 +162,7 @@ export default function UkAddressFields({
         ) : null}
       </div>
       <div className="space-y-2">
-        <Typography variant="label" className="text-xs text-form-title">
+        <Typography className={portalFieldLabelClass}>
           City
           {required ? <RequiredMark /> : null}
         </Typography>
@@ -166,8 +174,8 @@ export default function UkAddressFields({
           <SelectTrigger
             id={`${prefix}-city`}
             className={cn(
-              'h-8',
-              (disabled || !address.region) && 'bg-gray-100 text-gray-400',
+              portalSelectTriggerClass,
+              (disabled || !address.region) && 'bg-[#FAFAFA] text-[#71717A]',
               fieldErrors?.city && 'border-red-500 focus-visible:ring-red-500/20'
             )}
           >
@@ -188,7 +196,7 @@ export default function UkAddressFields({
         ) : null}
       </div>
       <div className="space-y-2">
-        <Typography variant="label" className="text-xs text-form-title">
+        <Typography className={portalFieldLabelClass}>
           Postcode
           {required ? <RequiredMark /> : null}
         </Typography>
@@ -196,7 +204,7 @@ export default function UkAddressFields({
           id={`${prefix}-postcode`}
           value={address.postcode}
           onChange={(event) => onChange('postcode', event.target.value)}
-          className={cn('h-8', disabled && 'bg-gray-100 text-gray-400')}
+          className={portalFieldInputClass(disabled)}
           disabled={disabled}
           errorMessage={fieldErrors?.postcode}
         />

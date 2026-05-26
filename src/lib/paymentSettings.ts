@@ -3,9 +3,10 @@ import type {
   PaymentMethodDistributionDto,
 } from '@/store/api/homeDashboardApi';
 import { statusToBadgeLabel } from '@/lib/homeDashboard';
+import { portalFormCardClass } from '@/lib/portalTheme';
 
-export const ACCOUNTS_DETAILS_SECTION_CLASS =
-  'flex flex-col gap-5 rounded-xl border border-[#E5E7EB] bg-white p-6';
+/** @deprecated Use `SETTINGS_FORM_CARD_CLASS` from `@/lib/settingsUi` */
+export const ACCOUNTS_DETAILS_SECTION_CLASS = portalFormCardClass;
 
 export const SW_COURIERS_BANK_DETAILS = {
   accountName: 'SW Couriers Ltd',

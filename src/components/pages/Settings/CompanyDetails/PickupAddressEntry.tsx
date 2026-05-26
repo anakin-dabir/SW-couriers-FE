@@ -26,6 +26,7 @@ interface PickupAddressEntryProps {
   index: number;
   effectiveAddress: AddressFields;
   disableAddressInputs: boolean;
+  readOnly?: boolean;
   pickupCount: number;
   isMapPickerOpen: boolean;
   onToggleMapPicker: () => void;
@@ -42,6 +43,7 @@ export default function PickupAddressEntry({
   index,
   effectiveAddress,
   disableAddressInputs,
+  readOnly = false,
   pickupCount,
   isMapPickerOpen,
   onToggleMapPicker,
@@ -74,31 +76,33 @@ export default function PickupAddressEntry({
         >
           Pickup Address # {String(index + 1).padStart(2, '0')}
         </Typography>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="inline-flex h-6 items-center rounded border border-gray-200 px-2 text-[10px] font-medium text-gray-500"
-            onClick={onToggleMapPicker}
-            disabled={disableAddressInputs}
-          >
-            Pin from Map
-          </button>
-          <button
-            type="button"
-            onClick={onRemove}
-            disabled={pickupCount === 1}
-            className="inline-flex h-6 items-center gap-1 rounded border border-red-200 px-2 text-[10px] font-medium text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Minus className="h-3 w-3" />
-            Remove
-          </button>
-        </div>
+        {!readOnly ? (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex h-6 items-center rounded border border-gray-200 px-2 text-[10px] font-medium text-gray-500"
+              onClick={onToggleMapPicker}
+              disabled={disableAddressInputs}
+            >
+              Pin from Map
+            </button>
+            <button
+              type="button"
+              onClick={onRemove}
+              disabled={pickupCount === 1}
+              className="inline-flex h-6 items-center gap-1 rounded border border-red-200 px-2 text-[10px] font-medium text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Minus className="h-3 w-3" />
+              Remove
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {isMapPickerOpen && !disableAddressInputs ? mapPicker : null}
 
       <div className="mb-3 flex items-center gap-2">
-        <Switch checked={pickup.isDefault} onCheckedChange={onDefaultChange} />
+        <Switch checked={pickup.isDefault} onCheckedChange={onDefaultChange} disabled={readOnly} />
         <Typography variant="body" className="text-xs font-medium text-gray-700">
           Set as Default Pickup Address
         </Typography>
@@ -115,6 +119,7 @@ export default function PickupAddressEntry({
           }}
           label="Same as Registered Address"
           className="h-3.5 w-3.5"
+          disabled={readOnly}
         />
         <Checkbox
           checked={pickup.sameAsTrading}
@@ -126,6 +131,7 @@ export default function PickupAddressEntry({
           }}
           label="Same as Trading Address"
           className="h-3.5 w-3.5"
+          disabled={readOnly}
         />
       </div>
 

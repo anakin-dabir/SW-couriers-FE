@@ -1,26 +1,30 @@
 import { Calendar } from 'lucide-react';
 import Typography from '@/components/atoms/Typography';
+import { PAYMENT_BILLING_ICON_CLASS, PAYMENT_BILLING_VALUE_CLASS } from '@/lib/paymentSettingsUi';
+import { SETTINGS_FORM_CARD_CLASS } from '@/lib/settingsUi';
+import { portalSectionDescClass } from '@/lib/portalTheme';
+import { cn } from '@/lib/utils';
 
 interface BillingScheduleRowProps {
   label?: string;
   value: string;
+  className?: string;
 }
 
 export default function BillingScheduleRow({
   label = 'Billing Schedule',
   value,
+  className,
 }: BillingScheduleRowProps): React.JSX.Element {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-lg border border-[#E2E6EE] bg-[#F7F8FB] px-4 py-3">
-      <Typography variant="body" className="text-sm font-medium text-[#52525B]">
-        {label}
-      </Typography>
-      <div className="flex items-center gap-2">
-        <Typography variant="body" weight="medium" className="text-sm text-[#18181B]">
-          {value}
-        </Typography>
-        <Calendar className="h-4 w-4 text-[#9CA3AF]" aria-hidden />
+    <div
+      className={cn(SETTINGS_FORM_CARD_CLASS, 'flex items-center justify-between gap-4', className)}
+    >
+      <div className="min-w-0">
+        <Typography className={portalSectionDescClass}>{label}</Typography>
+        <Typography className={PAYMENT_BILLING_VALUE_CLASS}>{value}</Typography>
       </div>
+      <Calendar className={PAYMENT_BILLING_ICON_CLASS} strokeWidth={1.25} aria-hidden />
     </div>
   );
 }
