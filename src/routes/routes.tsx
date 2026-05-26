@@ -441,7 +441,7 @@ export const routes: RouteObject[] = [
     path: '/credit-request/new',
     element: (
       <ProtectedRoute>
-        <DashboardLayout mainVariant="flush">
+        <DashboardLayout>
           <CreditLimitIncreaseFormPage />
         </DashboardLayout>
       </ProtectedRoute>

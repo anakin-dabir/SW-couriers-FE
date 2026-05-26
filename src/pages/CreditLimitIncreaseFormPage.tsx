@@ -1,14 +1,6 @@
 import * as React from 'react';
 import { format } from 'date-fns';
-import {
-  ArrowLeft,
-  ArrowRight,
-  Calendar as CalendarIcon,
-  Check,
-  ChevronDown,
-  Plus,
-  Upload,
-} from 'lucide-react';
+import { ArrowRight, Plus, Upload } from 'lucide-react';
 import { parsePhoneNumber } from 'libphonenumber-js';
 import PhoneInput, { type Country } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
@@ -26,7 +18,6 @@ import {
   SelectValue,
 } from '@/components/atoms/select';
 import { Typography } from '@/components/atoms';
-import { CreditApplicationHeaderIcon } from '@/assets/svg';
 import {
   CREDIT_ACCOUNT_EXISTS_MODAL_BODY,
   CREDIT_ACCOUNT_EXISTS_MODAL_CLOSE_BTN,
@@ -54,18 +45,25 @@ import {
   type OrganizationProfileOrganizationDto,
 } from '@/store/api/organizationProfileApi';
 import { creditApplicationIndustryOrNull } from '@/lib/creditIndustryMapping';
+import CreditApplicationFormShell from '@/components/pages/CreditApplication/CreditApplicationFormShell';
 import {
-  CREDIT_FORM_CANVAS_CLASS,
-  CREDIT_FORM_CARD_CLASS,
+  CreditFormField,
+  CreditFormStepHeader,
+  CreditFormStepPanel,
+  ProfileReadOnlyDate,
+  ProfileReadOnlySelect,
+} from '@/components/pages/CreditApplication/creditFormPrimitives';
+import {
+  CREDIT_FORM_BACK_BTN_CLASS,
+  CREDIT_FORM_CANCEL_BTN_CLASS,
+  CREDIT_FORM_DRAFT_BTN_CLASS,
   CREDIT_FORM_FIELD_INPUT_CLASS,
-  CREDIT_FORM_PAGE_CLASS,
-  CREDIT_FORM_SECTION_PAD,
-  CREDIT_FORM_STEP_DESC_CLASS,
-  CREDIT_FORM_STEP_PANEL_CLASS,
-  CREDIT_FORM_STEP_TITLE_CLASS,
+  CREDIT_FORM_FOOTER_CLASS,
+  CREDIT_FORM_NESTED_CARD_CLASS,
+  CREDIT_FORM_OUTLINE_BTN_CLASS,
+  CREDIT_FORM_PRIMARY_BTN_CLASS,
+  CREDIT_FORM_READONLY_INPUT_CLASS,
 } from '@/lib/creditApplicationUi';
-import { portalFieldInputClass, portalInputReadOnlyClass } from '@/lib/portalTheme';
-import { cn } from '@/lib/utils';
 import { useAppSelector } from '@/store/hooks';
 import type { RootState } from '@/store/store';
 
@@ -141,11 +139,6 @@ const PHONE_INVALID_ERROR =
   'Enter a valid phone number for the selected country (or use international +… format)';
 const PROFILE_FIELD_MISSING_ERROR =
   'This field is missing from your company profile. Update it in Company Settings.';
-const READ_ONLY_INPUT_CLASS = cn(
-  portalFieldInputClass(),
-  'cursor-not-allowed',
-  portalInputReadOnlyClass
-);
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function mapProfileCompanySizeToEmployees(companySize: string | null | undefined): string {
@@ -988,822 +981,694 @@ export default function CreditLimitIncreaseFormPage(): React.JSX.Element {
     void navigate('/credit-request');
   };
 
-  return (
-    <div className={CREDIT_FORM_CANVAS_CLASS}>
-      <div className={CREDIT_FORM_PAGE_CLASS}>
-        <button
+  const formFooter = (
+    <div className={CREDIT_FORM_FOOTER_CLASS}>
+      <Button
+        type="button"
+        variant="outline"
+        className={CREDIT_FORM_CANCEL_BTN_CLASS}
+        onClick={handleTopBack}
+        disabled={isSavingDraft || isSubmitting}
+      >
+        Cancel
+      </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        {currentStep > 0 ? (
+          <Button
+            type="button"
+            variant="outline"
+            className={CREDIT_FORM_BACK_BTN_CLASS}
+            onClick={handleBack}
+            disabled={isSavingDraft || isSubmitting}
+          >
+            Back
+          </Button>
+        ) : null}
+        <Button
           type="button"
-          onClick={handleTopBack}
-          className="inline-flex items-center gap-2 text-sm font-medium text-[#18181B] hover:text-[#3F3F46]"
+          variant="outline"
+          className={CREDIT_FORM_DRAFT_BTN_CLASS}
+          onClick={() => void handleSaveDraft()}
+          disabled={isSavingDraft || isSubmitting}
         >
-          <ArrowLeft className="size-4" />
-          Back
-        </button>
+          {isSavingDraft ? 'Saving...' : 'Save as Draft'}
+        </Button>
+        <Button
+          type="button"
+          className={CREDIT_FORM_PRIMARY_BTN_CLASS}
+          onClick={handleSaveAndContinue}
+          disabled={isSavingDraft || isSubmitting}
+        >
+          {currentStep === 4
+            ? isSubmitting
+              ? 'Submitting...'
+              : 'Submit Application'
+            : 'Save & Continue'}
+          {currentStep === 4 ? null : <ArrowRight className="size-4" />}
+        </Button>
+      </div>
+    </div>
+  );
 
-        <div className={`${CREDIT_FORM_CARD_CLASS} mt-4`}>
-          <div className="space-y-5 p-6">
-            <div className="flex items-start gap-3">
-              <img
-                src={CreditApplicationHeaderIcon}
-                alt=""
-                width={64}
-                height={56}
-                className="shrink-0"
-                aria-hidden
+  return (
+    <CreditApplicationFormShell
+      steps={STEP_ITEMS}
+      currentStep={currentStep}
+      onBack={handleTopBack}
+      footer={formFooter}
+    >
+      {currentStep === 0 ? (
+        <CreditFormStepPanel>
+          <CreditFormStepHeader
+            title="Company Financial Information"
+            description="Provide key financial and company details required for credit assessment."
+          />
+          <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
+            <CreditFormField
+              label="Company Registration Number"
+              required
+              error={firstStepErrors.companyRegistrationNumber}
+            >
+              <Input
+                readOnly
+                value={isOrganizationProfileLoading ? '' : firstStepForm.companyRegistrationNumber}
+                placeholder={isOrganizationProfileLoading ? 'Loading…' : '—'}
+                className={CREDIT_FORM_READONLY_INPUT_CLASS}
               />
-              <div>
-                <Typography
-                  variant="h1"
-                  className="text-[28px] font-semibold leading-8 text-[#18181B]"
-                >
-                  Credit Application
-                </Typography>
-                <Typography variant="body" className={CREDIT_FORM_STEP_DESC_CLASS}>
-                  Complete the form below to apply for a credit facility. All required fields must
-                  be filled before submission.
-                </Typography>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-5 gap-2 pt-1">
-              {STEP_ITEMS.map((step, index) => {
-                const isActive = index === currentStep;
-                const isComplete = index < currentStep;
-
-                return (
-                  <div key={step} className="flex flex-col items-center text-center">
-                    <div className="flex w-full items-center">
-                      {index > 0 ? (
-                        <div
-                          className={`h-[2px] w-full ${
-                            index <= currentStep
-                              ? 'bg-[#C63131]'
-                              : 'border-t-2 border-dashed border-[#A1A1AA]'
-                          }`}
-                        />
-                      ) : (
-                        <div className="w-full" />
-                      )}
-                      <div
-                        className={`size-5 shrink-0 rounded-full border-2 flex items-center justify-center ${
-                          isActive
-                            ? 'border-white bg-[#C63131] shadow-[0_0_0_3px_rgba(202,0,0,0.15)]'
-                            : isComplete
-                              ? 'border-[#C63131] bg-[#C63131]'
-                              : 'border-[#A1A1AA] bg-white'
-                        }`}
-                      >
-                        {isComplete ? (
-                          <Check className="size-3 text-white" strokeWidth={3} />
-                        ) : isActive ? (
-                          <span className="size-2 rounded-full bg-white" />
-                        ) : null}
-                      </div>
-                      {index < STEP_ITEMS.length - 1 ? (
-                        <div
-                          className={`h-[2px] w-full ${
-                            index < currentStep
-                              ? 'bg-[#C63131]'
-                              : 'border-t-2 border-dashed border-[#A1A1AA]'
-                          }`}
-                        />
-                      ) : (
-                        <div className="w-full" />
-                      )}
-                    </div>
-
-                    <Typography
-                      variant="caption"
-                      color="text"
-                      className={`mt-2 whitespace-pre-line text-xs font-medium leading-4 ${
-                        index <= currentStep ? 'text-[#3F3F46]' : 'text-form-subtitle'
-                      }`}
-                    >
-                      {step}
-                    </Typography>
-                  </div>
-                );
-              })}
-            </div>
+            </CreditFormField>
+            <CreditFormField
+              label="VAT Registration Number"
+              required
+              error={firstStepErrors.vatRegistrationNumber}
+            >
+              <Input
+                readOnly
+                value={isOrganizationProfileLoading ? '' : firstStepForm.vatRegistrationNumber}
+                placeholder={isOrganizationProfileLoading ? 'Loading…' : '—'}
+                className={CREDIT_FORM_READONLY_INPUT_CLASS}
+              />
+            </CreditFormField>
+            <CreditFormField label="Industry" required error={firstStepErrors.industry}>
+              <ProfileReadOnlySelect
+                loading={isOrganizationProfileLoading}
+                displayValue={getIndustryDisplayLabel(firstStepForm.industry)}
+                placeholder="—"
+              />
+            </CreditFormField>
+            <CreditFormField
+              label="Number of Employees"
+              required
+              error={firstStepErrors.numberOfEmployees}
+            >
+              <ProfileReadOnlySelect
+                loading={isOrganizationProfileLoading}
+                displayValue={getEmployeeDisplayLabel(firstStepForm.numberOfEmployees)}
+                placeholder="—"
+              />
+            </CreditFormField>
+            <CreditFormField
+              label="Date of Incorporation"
+              required
+              error={dateOfIncorporationError}
+            >
+              <ProfileReadOnlyDate
+                loading={isOrganizationProfileLoading}
+                value={dateOfIncorporation ? format(dateOfIncorporation, 'dd-MM-yyyy') : ''}
+              />
+            </CreditFormField>
+            <CreditFormField label="Years Trading" required error={firstStepErrors.yearsTrading}>
+              <Input
+                type="text"
+                inputMode="numeric"
+                value={firstStepForm.yearsTrading}
+                onChange={(event) =>
+                  updateFirstStepField('yearsTrading', sanitizeIntegerInput(event.target.value))
+                }
+                placeholder="e.g. 10"
+                className={CREDIT_FORM_FIELD_INPUT_CLASS}
+              />
+            </CreditFormField>
+            <CreditFormField
+              label="Annual Turnover"
+              required
+              error={firstStepErrors.annualTurnover}
+            >
+              <Input
+                type="text"
+                inputMode="decimal"
+                value={firstStepForm.annualTurnover}
+                onChange={(event) =>
+                  updateFirstStepField('annualTurnover', sanitizeDecimalInput(event.target.value))
+                }
+                placeholder="e.g. £500,000.00"
+                className={CREDIT_FORM_FIELD_INPUT_CLASS}
+              />
+            </CreditFormField>
+            <CreditFormField
+              label="Net Profit (Last Financial Year)"
+              error={firstStepErrors.netProfit}
+            >
+              <Input
+                type="text"
+                inputMode="decimal"
+                value={firstStepForm.netProfit}
+                onChange={(event) =>
+                  updateFirstStepField('netProfit', sanitizeDecimalInput(event.target.value))
+                }
+                placeholder="e.g. £120,000.00"
+                className={CREDIT_FORM_FIELD_INPUT_CLASS}
+              />
+            </CreditFormField>
           </div>
+        </CreditFormStepPanel>
+      ) : currentStep === 1 ? (
+        <CreditFormStepPanel>
+          <CreditFormStepHeader
+            title="Trade References"
+            description="Provide a minimum of 2 and up to 5 trade references for verification."
+            action={
+              <Button
+                variant="outline"
+                onClick={addReference}
+                disabled={references.length >= 5}
+                className={CREDIT_FORM_OUTLINE_BTN_CLASS}
+              >
+                <Plus className="size-4" />
+                Add Reference
+              </Button>
+            }
+          />
+          <div className="space-y-4 p-6">
+            {references.map((reference, index) => (
+              <div key={`trade-reference-${index}`} className={CREDIT_FORM_NESTED_CARD_CLASS}>
+                <Typography variant="h4" className="mb-4 text-base font-semibold text-[#18181B]">
+                  Reference # {String(index + 1).padStart(2, '0')}
+                </Typography>
 
-          <section className="border-t border-[#E5E5EC]">
-            {currentStep === 0 ? (
-              <CreditFormStepPanel>
-                <CreditFormStepHeader
-                  title="Company Financial Information"
-                  description="Provide key financial and company details required for credit assessment."
-                />
-                <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
-                  <Field
-                    label="Company Registration Number"
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <CreditFormField
+                    label="Company Name"
                     required
-                    error={firstStepErrors.companyRegistrationNumber}
+                    error={tradeReferenceErrors[index]?.companyName}
                   >
                     <Input
-                      readOnly
-                      value={
-                        isOrganizationProfileLoading ? '' : firstStepForm.companyRegistrationNumber
+                      value={reference.companyName}
+                      onChange={(event) =>
+                        updateReferenceField(index, 'companyName', event.target.value)
                       }
-                      placeholder={isOrganizationProfileLoading ? 'Loading…' : '—'}
-                      className={READ_ONLY_INPUT_CLASS}
+                      placeholder="e.g. ABC Logistics Ltd"
+                      className="h-11 border-[#E5E7EB] bg-white"
                     />
-                  </Field>
-                  <Field
-                    label="VAT Registration Number"
+                  </CreditFormField>
+                  <CreditFormField
+                    label="Contact Person"
                     required
-                    error={firstStepErrors.vatRegistrationNumber}
+                    error={tradeReferenceErrors[index]?.contactPerson}
                   >
                     <Input
-                      readOnly
-                      value={
-                        isOrganizationProfileLoading ? '' : firstStepForm.vatRegistrationNumber
+                      value={reference.contactPerson}
+                      onChange={(event) =>
+                        updateReferenceField(index, 'contactPerson', event.target.value)
                       }
-                      placeholder={isOrganizationProfileLoading ? 'Loading…' : '—'}
-                      className={READ_ONLY_INPUT_CLASS}
+                      placeholder="e.g. John Smith"
+                      className="h-11 border-[#E5E7EB] bg-white"
                     />
-                  </Field>
-                  <Field label="Industry" required error={firstStepErrors.industry}>
-                    <ProfileReadOnlySelect
-                      loading={isOrganizationProfileLoading}
-                      displayValue={getIndustryDisplayLabel(firstStepForm.industry)}
-                      placeholder="—"
-                    />
-                  </Field>
-                  <Field
-                    label="Number of Employees"
+                  </CreditFormField>
+                  <CreditFormField
+                    label="Contact Phone"
                     required
-                    error={firstStepErrors.numberOfEmployees}
+                    error={tradeReferenceErrors[index]?.contactPhone}
                   >
-                    <ProfileReadOnlySelect
-                      loading={isOrganizationProfileLoading}
-                      displayValue={getEmployeeDisplayLabel(firstStepForm.numberOfEmployees)}
-                      placeholder="—"
-                    />
-                  </Field>
-                  <Field label="Date of Incorporation" required error={dateOfIncorporationError}>
-                    <ProfileReadOnlyDate
-                      loading={isOrganizationProfileLoading}
-                      value={dateOfIncorporation ? format(dateOfIncorporation, 'dd-MM-yyyy') : ''}
-                    />
-                  </Field>
-                  <Field label="Years Trading" required error={firstStepErrors.yearsTrading}>
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      value={firstStepForm.yearsTrading}
-                      onChange={(event) =>
-                        updateFirstStepField(
-                          'yearsTrading',
-                          sanitizeIntegerInput(event.target.value)
-                        )
-                      }
-                      placeholder="e.g. 10"
-                      className={CREDIT_FORM_FIELD_INPUT_CLASS}
-                    />
-                  </Field>
-                  <Field label="Annual Turnover" required error={firstStepErrors.annualTurnover}>
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      value={firstStepForm.annualTurnover}
-                      onChange={(event) =>
-                        updateFirstStepField(
-                          'annualTurnover',
-                          sanitizeDecimalInput(event.target.value)
-                        )
-                      }
-                      placeholder="e.g. £500,000.00"
-                      className={CREDIT_FORM_FIELD_INPUT_CLASS}
-                    />
-                  </Field>
-                  <Field label="Net Profit (Last Financial Year)" error={firstStepErrors.netProfit}>
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      value={firstStepForm.netProfit}
-                      onChange={(event) =>
-                        updateFirstStepField('netProfit', sanitizeDecimalInput(event.target.value))
-                      }
-                      placeholder="e.g. £120,000.00"
-                      className={CREDIT_FORM_FIELD_INPUT_CLASS}
-                    />
-                  </Field>
-                </div>
-              </CreditFormStepPanel>
-            ) : currentStep === 1 ? (
-              <CreditFormStepPanel>
-                <CreditFormStepHeader
-                  title="Trade References"
-                  description="Provide a minimum of 2 and up to 5 trade references for verification."
-                  action={
-                    <Button
-                      variant="outline"
-                      onClick={addReference}
-                      disabled={references.length >= 5}
-                      className="h-10 shrink-0 border-[#E5E7EB] bg-white text-sm font-medium text-[#18181B] hover:bg-[#FAFAFA]"
-                    >
-                      <Plus className="size-4" />
-                      Add Reference
-                    </Button>
-                  }
-                />
-                <div className="space-y-4 p-6">
-                  {references.map((reference, index) => (
-                    <div
-                      key={`trade-reference-${index}`}
-                      className="rounded-[10px] border border-[#E4E4E7] bg-white p-4 md:p-5"
-                    >
-                      <Typography
-                        variant="h4"
-                        className="mb-4 text-base font-semibold text-[#18181B]"
-                      >
-                        Reference # {String(index + 1).padStart(2, '0')}
-                      </Typography>
-
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <Field
-                          label="Company Name"
-                          required
-                          error={tradeReferenceErrors[index]?.companyName}
-                        >
-                          <Input
-                            value={reference.companyName}
-                            onChange={(event) =>
-                              updateReferenceField(index, 'companyName', event.target.value)
-                            }
-                            placeholder="e.g. ABC Logistics Ltd"
-                            className="h-11 border-[#E5E7EB] bg-white"
-                          />
-                        </Field>
-                        <Field
-                          label="Contact Person"
-                          required
-                          error={tradeReferenceErrors[index]?.contactPerson}
-                        >
-                          <Input
-                            value={reference.contactPerson}
-                            onChange={(event) =>
-                              updateReferenceField(index, 'contactPerson', event.target.value)
-                            }
-                            placeholder="e.g. John Smith"
-                            className="h-11 border-[#E5E7EB] bg-white"
-                          />
-                        </Field>
-                        <Field
-                          label="Contact Phone"
-                          required
-                          error={tradeReferenceErrors[index]?.contactPhone}
-                        >
-                          <div className="flex h-11 w-full items-center gap-2 rounded-md border border-[#E5E7EB] bg-white px-3 py-2 focus-within:border-[#C63131] focus-within:ring-2 focus-within:ring-[#CA0000]/15">
-                            <PhoneInput
-                              international
-                              countryCallingCodeEditable
-                              defaultCountry="GB"
-                              country={reference.contactPhoneCountry}
-                              value={reference.contactPhone || undefined}
-                              onChange={(value) =>
-                                updateReferenceField(index, 'contactPhone', String(value ?? ''))
-                              }
-                              onCountryChange={(country) =>
-                                updateReferenceField(index, 'contactPhoneCountry', country ?? 'GB')
-                              }
-                              placeholder="e.g. 07700 900123 or +1 202 555 0123"
-                              className="flex min-w-0 flex-1 items-center border-0 bg-transparent p-0"
-                              numberInputProps={{
-                                className:
-                                  'flex-1 min-w-0 border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:text-[#A1A1AA] focus:outline-none focus:ring-0',
-                              }}
-                            />
-                          </div>
-                        </Field>
-                        <Field
-                          label="Contact Email"
-                          required
-                          error={tradeReferenceErrors[index]?.contactEmail}
-                        >
-                          <Input
-                            value={reference.contactEmail}
-                            onChange={(event) =>
-                              updateReferenceField(index, 'contactEmail', event.target.value)
-                            }
-                            placeholder="e.g. john@company.com"
-                            className="h-11 border-[#E5E7EB] bg-white"
-                          />
-                        </Field>
-                        <Field label="Account Number / Reference">
-                          <Input
-                            value={reference.accountNumber}
-                            onChange={(event) =>
-                              updateReferenceField(index, 'accountNumber', event.target.value)
-                            }
-                            placeholder="e.g. ACC-10234"
-                            className="h-11 border-[#E5E7EB] bg-white"
-                          />
-                        </Field>
-                        <Field
-                          label="Credit Limit with Reference"
-                          error={tradeReferenceErrors[index]?.creditLimit}
-                        >
-                          <Input
-                            type="text"
-                            inputMode="decimal"
-                            value={reference.creditLimit}
-                            onChange={(event) =>
-                              updateReferenceField(
-                                index,
-                                'creditLimit',
-                                sanitizeDecimalInput(event.target.value)
-                              )
-                            }
-                            placeholder="e.g. 10000.00"
-                            className="h-11 border-[#E5E7EB] bg-white"
-                          />
-                        </Field>
-                        <Field
-                          label="Relationship Duration"
-                          required
-                          error={tradeReferenceErrors[index]?.relationshipDuration}
-                        >
-                          <Select
-                            value={reference.relationshipDuration}
-                            onValueChange={(value) =>
-                              updateReferenceField(index, 'relationshipDuration', value)
-                            }
-                          >
-                            <SelectTrigger className="h-11 border-[#E5E7EB] bg-white text-gray-900">
-                              <SelectValue placeholder="Select relationship duration" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {RELATIONSHIP_DURATION_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </Field>
-                      </div>
+                    <div className="flex h-11 w-full items-center gap-2 rounded-md border border-[#E5E7EB] bg-white px-3 py-2 focus-within:border-[#C63131] focus-within:ring-2 focus-within:ring-[#CA0000]/15">
+                      <PhoneInput
+                        international
+                        countryCallingCodeEditable
+                        defaultCountry="GB"
+                        country={reference.contactPhoneCountry}
+                        value={reference.contactPhone || undefined}
+                        onChange={(value) =>
+                          updateReferenceField(index, 'contactPhone', String(value ?? ''))
+                        }
+                        onCountryChange={(country) =>
+                          updateReferenceField(index, 'contactPhoneCountry', country ?? 'GB')
+                        }
+                        placeholder="e.g. 07700 900123 or +1 202 555 0123"
+                        className="flex min-w-0 flex-1 items-center border-0 bg-transparent p-0"
+                        numberInputProps={{
+                          className:
+                            'flex-1 min-w-0 border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:text-[#A1A1AA] focus:outline-none focus:ring-0',
+                        }}
+                      />
                     </div>
-                  ))}
-                </div>
-              </CreditFormStepPanel>
-            ) : currentStep === 2 ? (
-              <CreditFormStepPanel>
-                <CreditFormStepHeader
-                  title="Bank Reference"
-                  description="Provide details of the client's primary bank for verification."
-                />
-                <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
-                  <Field label="Bank Name" required error={bankReferenceErrors.bankName}>
-                    <Input
-                      value={bankReferenceForm.bankName}
-                      onChange={(event) => updateBankReferenceField('bankName', event.target.value)}
-                      placeholder="e.g. Barclays Bank"
-                      className="h-11 border-[#E5E7EB] bg-white"
-                    />
-                  </Field>
-                  <Field label="Sort Code" required error={bankReferenceErrors.sortCode}>
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      value={bankReferenceForm.sortCode}
-                      onChange={(event) =>
-                        updateBankReferenceField(
-                          'sortCode',
-                          sanitizeSortCodeInput(event.target.value)
-                        )
-                      }
-                      placeholder="e.g. 123456"
-                      className="h-11 border-[#E5E7EB] bg-white"
-                      maxLength={6}
-                    />
-                  </Field>
-                  <Field
-                    label="Account Number (Last 4 digits only)"
+                  </CreditFormField>
+                  <CreditFormField
+                    label="Contact Email"
                     required
-                    error={bankReferenceErrors.accountNumberLast4}
+                    error={tradeReferenceErrors[index]?.contactEmail}
                   >
                     <Input
-                      type="text"
-                      inputMode="numeric"
-                      value={bankReferenceForm.accountNumberLast4}
+                      value={reference.contactEmail}
                       onChange={(event) =>
-                        updateBankReferenceField(
-                          'accountNumberLast4',
-                          sanitizeAccountLast4Input(event.target.value)
-                        )
+                        updateReferenceField(index, 'contactEmail', event.target.value)
                       }
-                      placeholder="e.g. 1234"
+                      placeholder="e.g. john@company.com"
                       className="h-11 border-[#E5E7EB] bg-white"
-                      maxLength={4}
                     />
-                  </Field>
-                  <Field label="Account Type" required error={bankReferenceErrors.accountType}>
-                    <Select
-                      value={bankReferenceForm.accountType}
-                      onValueChange={(value) => updateBankReferenceField('accountType', value)}
-                    >
-                      <SelectTrigger className="h-11 border-[#E5E7EB] bg-white text-gray-900">
-                        <SelectValue placeholder="Select account type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="BUSINESS_CURRENT">Business Current</SelectItem>
-                        <SelectItem value="BUSINESS_SAVINGS">Business Savings</SelectItem>
-                        <SelectItem value="OTHER">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </Field>
-
-                  <div className="md:col-span-2">
-                    <Field label="Upload Bank Reference Letter">
-                      <div className="flex items-center justify-between rounded-[8px] border border-[#E5E7EB] bg-white px-3 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="rounded-md bg-[#E5F2FF] p-2">
-                            <Upload className="size-4 text-[#1D70B8]" />
-                          </div>
-                          <div>
-                            <Typography
-                              variant="body"
-                              color="text"
-                              className="text-sm font-medium text-gray-900"
-                            >
-                              {bankReferenceForm.referenceLetterName || 'File Upload'}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              color="muted"
-                              className="text-xs text-[#71717A]"
-                            >
-                              Max 10 MB file size - Accepted formats: PNG, JPG, PDF
-                            </Typography>
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => bankReferenceFileInputRef.current?.click()}
-                        >
-                          <Upload className="size-4" />
-                          Upload
-                        </Button>
-                        <input
-                          ref={bankReferenceFileInputRef}
-                          type="file"
-                          accept=".png,.jpg,.jpeg,.pdf"
-                          className="hidden"
-                          onChange={(event) => {
-                            const file = event.target.files?.[0];
-                            setBankReferenceLetterFile(file ?? null);
-                            updateBankReferenceField('referenceLetterName', file?.name ?? '');
-                          }}
-                        />
-                      </div>
-                    </Field>
-                  </div>
-                </div>
-              </CreditFormStepPanel>
-            ) : currentStep === 3 ? (
-              <CreditFormStepPanel>
-                <CreditFormStepHeader
-                  title="Requested Credit Terms"
-                  description="Specify the requested credit limit, payment terms, and expected usage."
-                />
-                <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
-                  <Field
-                    label="Requested Credit Limit"
-                    required
-                    error={requestedTermsErrors.requestedCreditLimit}
+                  </CreditFormField>
+                  <CreditFormField label="Account Number / Reference">
+                    <Input
+                      value={reference.accountNumber}
+                      onChange={(event) =>
+                        updateReferenceField(index, 'accountNumber', event.target.value)
+                      }
+                      placeholder="e.g. ACC-10234"
+                      className="h-11 border-[#E5E7EB] bg-white"
+                    />
+                  </CreditFormField>
+                  <CreditFormField
+                    label="Credit Limit with Reference"
+                    error={tradeReferenceErrors[index]?.creditLimit}
                   >
                     <Input
                       type="text"
                       inputMode="decimal"
-                      value={requestedTermsForm.requestedCreditLimit}
+                      value={reference.creditLimit}
                       onChange={(event) =>
-                        updateRequestedTermsField(
-                          'requestedCreditLimit',
+                        updateReferenceField(
+                          index,
+                          'creditLimit',
                           sanitizeDecimalInput(event.target.value)
                         )
                       }
-                      placeholder="e.g. 25000.00"
+                      placeholder="e.g. 10000.00"
                       className="h-11 border-[#E5E7EB] bg-white"
                     />
-                  </Field>
-                  <Field
-                    label="Requested Payment Terms"
+                  </CreditFormField>
+                  <CreditFormField
+                    label="Relationship Duration"
                     required
-                    error={requestedTermsErrors.requestedPaymentTermsDays}
+                    error={tradeReferenceErrors[index]?.relationshipDuration}
                   >
                     <Select
-                      value={requestedTermsForm.requestedPaymentTermsDays}
+                      value={reference.relationshipDuration}
                       onValueChange={(value) =>
-                        updateRequestedTermsField('requestedPaymentTermsDays', value)
+                        updateReferenceField(index, 'relationshipDuration', value)
                       }
                     >
                       <SelectTrigger className="h-11 border-[#E5E7EB] bg-white text-gray-900">
-                        <SelectValue placeholder="Select payment terms" />
+                        <SelectValue placeholder="Select relationship duration" />
                       </SelectTrigger>
                       <SelectContent>
-                        {PAYMENT_TERMS_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={String(option.value)}>
+                        {RELATIONSHIP_DURATION_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
                             {option.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                  </Field>
-                  <Field
-                    label="Expected Monthly Spend"
-                    required
-                    error={requestedTermsErrors.expectedMonthlySpend}
-                  >
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      value={requestedTermsForm.expectedMonthlySpend}
-                      onChange={(event) =>
-                        updateRequestedTermsField(
-                          'expectedMonthlySpend',
-                          sanitizeDecimalInput(event.target.value)
-                        )
-                      }
-                      placeholder="e.g. 5000.00"
-                      className="h-11 border-[#E5E7EB] bg-white"
-                    />
-                  </Field>
-                  <Field label="Seasonal Peaks">
-                    <Select
-                      value=""
-                      onValueChange={(value) => {
-                        if (requestedTermsForm.seasonalPeaks.includes(value)) return;
-                        if (requestedTermsForm.seasonalPeaks.length >= 12) return;
-                        updateRequestedTermsField('seasonalPeaks', [
-                          ...requestedTermsForm.seasonalPeaks,
-                          value,
-                        ]);
-                      }}
-                    >
-                      <SelectTrigger className="h-11 border-[#E5E7EB] bg-white text-gray-900">
-                        <SelectValue placeholder="Select month" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SEASONAL_MONTH_OPTIONS.map((month) => (
-                          <SelectItem key={month} value={month}>
-                            {month}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {requestedTermsForm.seasonalPeaks.length > 0 ? (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {requestedTermsForm.seasonalPeaks.map((month) => (
-                          <button
-                            key={month}
-                            type="button"
-                            onClick={() =>
-                              updateRequestedTermsField(
-                                'seasonalPeaks',
-                                requestedTermsForm.seasonalPeaks.filter((item) => item !== month)
-                              )
-                            }
-                            className="rounded-full border border-[#E5E7EB] bg-[#FAFAFA] px-3 py-1 text-xs text-[#3F3F46]"
-                          >
-                            {month} ×
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-                  </Field>
-                  <div className="md:col-span-2">
-                    <Field label="Justification / Notes">
-                      <textarea
-                        value={requestedTermsForm.justification}
-                        onChange={(event) =>
-                          updateRequestedTermsField(
-                            'justification',
-                            event.target.value.slice(0, 2000)
-                          )
-                        }
-                        placeholder="Provide any additional context supporting the credit request..."
-                        className="min-h-[120px] w-full rounded-md border border-[#E5E7EB] bg-white p-3 text-sm text-[#18181B] outline-none focus:border-[#C63131]"
-                      />
+                  </CreditFormField>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CreditFormStepPanel>
+      ) : currentStep === 2 ? (
+        <CreditFormStepPanel>
+          <CreditFormStepHeader
+            title="Bank Reference"
+            description="Provide details of the client's primary bank for verification."
+          />
+          <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
+            <CreditFormField label="Bank Name" required error={bankReferenceErrors.bankName}>
+              <Input
+                value={bankReferenceForm.bankName}
+                onChange={(event) => updateBankReferenceField('bankName', event.target.value)}
+                placeholder="e.g. Barclays Bank"
+                className="h-11 border-[#E5E7EB] bg-white"
+              />
+            </CreditFormField>
+            <CreditFormField label="Sort Code" required error={bankReferenceErrors.sortCode}>
+              <Input
+                type="text"
+                inputMode="numeric"
+                value={bankReferenceForm.sortCode}
+                onChange={(event) =>
+                  updateBankReferenceField('sortCode', sanitizeSortCodeInput(event.target.value))
+                }
+                placeholder="e.g. 123456"
+                className="h-11 border-[#E5E7EB] bg-white"
+                maxLength={6}
+              />
+            </CreditFormField>
+            <CreditFormField
+              label="Account Number (Last 4 digits only)"
+              required
+              error={bankReferenceErrors.accountNumberLast4}
+            >
+              <Input
+                type="text"
+                inputMode="numeric"
+                value={bankReferenceForm.accountNumberLast4}
+                onChange={(event) =>
+                  updateBankReferenceField(
+                    'accountNumberLast4',
+                    sanitizeAccountLast4Input(event.target.value)
+                  )
+                }
+                placeholder="e.g. 1234"
+                className="h-11 border-[#E5E7EB] bg-white"
+                maxLength={4}
+              />
+            </CreditFormField>
+            <CreditFormField label="Account Type" required error={bankReferenceErrors.accountType}>
+              <Select
+                value={bankReferenceForm.accountType}
+                onValueChange={(value) => updateBankReferenceField('accountType', value)}
+              >
+                <SelectTrigger className="h-11 border-[#E5E7EB] bg-white text-gray-900">
+                  <SelectValue placeholder="Select account type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BUSINESS_CURRENT">Business Current</SelectItem>
+                  <SelectItem value="BUSINESS_SAVINGS">Business Savings</SelectItem>
+                  <SelectItem value="OTHER">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </CreditFormField>
+
+            <div className="md:col-span-2">
+              <CreditFormField label="Upload Bank Reference Letter">
+                <div className="flex items-center justify-between rounded-[8px] border border-[#E5E7EB] bg-white px-3 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="rounded-md bg-[#E5F2FF] p-2">
+                      <Upload className="size-4 text-[#1D70B8]" />
+                    </div>
+                    <div>
+                      <Typography
+                        variant="body"
+                        color="text"
+                        className="text-sm font-medium text-gray-900"
+                      >
+                        {bankReferenceForm.referenceLetterName || 'File Upload'}
+                      </Typography>
                       <Typography
                         variant="caption"
                         color="muted"
                         className="text-xs text-[#71717A]"
                       >
-                        {requestedTermsForm.justification.length} / 2000 Max characters
+                        Max 10 MB file size - Accepted formats: PNG, JPG, PDF
                       </Typography>
-                    </Field>
-                  </div>
-                </div>
-              </CreditFormStepPanel>
-            ) : (
-              <CreditFormStepPanel>
-                <CreditFormStepHeader
-                  title="Declarations & Consent"
-                  description="The application cannot be submitted without accepting all required declarations."
-                />
-                <div className="space-y-5 p-6">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <Field
-                      label="Director / Authorised Signatory Name"
-                      required
-                      error={declarationsErrors.signatoryName}
-                    >
-                      <Input
-                        value={declarationsForm.signatoryName}
-                        onChange={(event) =>
-                          updateDeclarationsField('signatoryName', event.target.value)
-                        }
-                        placeholder="e.g. Michael Brown"
-                        className="h-11 border-[#E5E7EB] bg-white"
-                      />
-                    </Field>
-                    <Field
-                      label="Position / Title"
-                      required
-                      error={declarationsErrors.positionTitle}
-                    >
-                      <Input
-                        value={declarationsForm.positionTitle}
-                        onChange={(event) =>
-                          updateDeclarationsField('positionTitle', event.target.value)
-                        }
-                        placeholder="e.g. Finance Director"
-                        className="h-11 border-[#E5E7EB] bg-white"
-                      />
-                    </Field>
-                  </div>
-
-                  <Field label="Declaration Date">
-                    <Input
-                      value={new Date().toLocaleDateString('en-GB', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      })}
-                      readOnly
-                      className="h-11 border-[#E5E7EB] bg-[#FAFAFA] text-[#71717A]"
-                    />
-                  </Field>
-
-                  <div className="space-y-6 pt-2">
-                    <div>
-                      <div className="flex items-start gap-2">
-                        <Checkbox
-                          checked={declarationsForm.consentCreditCheck}
-                          onChange={(event) =>
-                            updateDeclarationsField('consentCreditCheck', event.target.checked)
-                          }
-                        />
-                        <div>
-                          <Typography
-                            variant="label"
-                            color="text"
-                            className="text-base font-medium text-[#18181B]"
-                          >
-                            Consent: Credit Check <span className="text-[#EF4444]">*</span>
-                          </Typography>
-                          <Typography
-                            variant="body"
-                            color="muted"
-                            className="text-sm text-[#71717A]"
-                          >
-                            I authorise SW Couriers to conduct credit checks and verify the
-                            information provided.
-                          </Typography>
-                        </div>
-                      </div>
-                      {declarationsErrors.consentCreditCheck ? (
-                        <Typography variant="caption" color="error" className="mt-1 block text-xs">
-                          {declarationsErrors.consentCreditCheck}
-                        </Typography>
-                      ) : null}
-                    </div>
-
-                    <div>
-                      <div className="flex items-start gap-2">
-                        <Checkbox
-                          checked={declarationsForm.consentTerms}
-                          onChange={(event) =>
-                            updateDeclarationsField('consentTerms', event.target.checked)
-                          }
-                        />
-                        <div>
-                          <Typography
-                            variant="label"
-                            color="text"
-                            className="text-base font-medium text-[#18181B]"
-                          >
-                            Consent: Terms &amp; Conditions{' '}
-                            <span className="text-[#EF4444]">*</span>
-                          </Typography>
-                          <Typography
-                            variant="body"
-                            color="muted"
-                            className="text-sm text-[#71717A]"
-                          >
-                            I have read and agree to the SW Couriers Credit Terms and Conditions.
-                          </Typography>
-                        </div>
-                      </div>
-                      {declarationsErrors.consentTerms ? (
-                        <Typography variant="caption" color="error" className="mt-1 block text-xs">
-                          {declarationsErrors.consentTerms}
-                        </Typography>
-                      ) : null}
-                    </div>
-
-                    <div>
-                      <div className="flex items-start gap-2">
-                        <Checkbox
-                          checked={declarationsForm.consentDataProcessing}
-                          onChange={(event) =>
-                            updateDeclarationsField('consentDataProcessing', event.target.checked)
-                          }
-                        />
-                        <div>
-                          <Typography
-                            variant="label"
-                            color="text"
-                            className="text-base font-medium text-[#18181B]"
-                          >
-                            Consent: Data Processing <span className="text-[#EF4444]">*</span>
-                          </Typography>
-                          <Typography
-                            variant="body"
-                            color="muted"
-                            className="text-sm text-[#71717A]"
-                          >
-                            I consent to SW Couriers processing the above data for the purpose of
-                            credit assessment.
-                          </Typography>
-                        </div>
-                      </div>
-                      {declarationsErrors.consentDataProcessing ? (
-                        <Typography variant="caption" color="error" className="mt-1 block text-xs">
-                          {declarationsErrors.consentDataProcessing}
-                        </Typography>
-                      ) : null}
                     </div>
                   </div>
-                </div>
-              </CreditFormStepPanel>
-            )}
-
-            <div
-              className={`flex flex-wrap items-center justify-between gap-3 border-t border-[#E5E5EC] px-6 py-4`}
-            >
-              <Button
-                type="button"
-                variant="outline"
-                className="h-10 border-[#F4C4C4] text-[#C63131] hover:bg-[#FFF5F5]"
-                onClick={handleTopBack}
-                disabled={isSavingDraft || isSubmitting}
-              >
-                Cancel
-              </Button>
-              <div className="flex flex-wrap items-center gap-2">
-                {currentStep > 0 ? (
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-10 min-w-[100px] border-[#E5E7EB] bg-white text-[#18181B] hover:bg-[#F4F4F5]"
-                    onClick={handleBack}
-                    disabled={isSavingDraft || isSubmitting}
+                    size="sm"
+                    onClick={() => bankReferenceFileInputRef.current?.click()}
                   >
-                    Back
+                    <Upload className="size-4" />
+                    Upload
                   </Button>
+                  <input
+                    ref={bankReferenceFileInputRef}
+                    type="file"
+                    accept=".png,.jpg,.jpeg,.pdf"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      setBankReferenceLetterFile(file ?? null);
+                      updateBankReferenceField('referenceLetterName', file?.name ?? '');
+                    }}
+                  />
+                </div>
+              </CreditFormField>
+            </div>
+          </div>
+        </CreditFormStepPanel>
+      ) : currentStep === 3 ? (
+        <CreditFormStepPanel>
+          <CreditFormStepHeader
+            title="Requested Credit Terms"
+            description="Specify the requested credit limit, payment terms, and expected usage."
+          />
+          <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2">
+            <CreditFormField
+              label="Requested Credit Limit"
+              required
+              error={requestedTermsErrors.requestedCreditLimit}
+            >
+              <Input
+                type="text"
+                inputMode="decimal"
+                value={requestedTermsForm.requestedCreditLimit}
+                onChange={(event) =>
+                  updateRequestedTermsField(
+                    'requestedCreditLimit',
+                    sanitizeDecimalInput(event.target.value)
+                  )
+                }
+                placeholder="e.g. 25000.00"
+                className="h-11 border-[#E5E7EB] bg-white"
+              />
+            </CreditFormField>
+            <CreditFormField
+              label="Requested Payment Terms"
+              required
+              error={requestedTermsErrors.requestedPaymentTermsDays}
+            >
+              <Select
+                value={requestedTermsForm.requestedPaymentTermsDays}
+                onValueChange={(value) =>
+                  updateRequestedTermsField('requestedPaymentTermsDays', value)
+                }
+              >
+                <SelectTrigger className="h-11 border-[#E5E7EB] bg-white text-gray-900">
+                  <SelectValue placeholder="Select payment terms" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_TERMS_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={String(option.value)}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CreditFormField>
+            <CreditFormField
+              label="Expected Monthly Spend"
+              required
+              error={requestedTermsErrors.expectedMonthlySpend}
+            >
+              <Input
+                type="text"
+                inputMode="decimal"
+                value={requestedTermsForm.expectedMonthlySpend}
+                onChange={(event) =>
+                  updateRequestedTermsField(
+                    'expectedMonthlySpend',
+                    sanitizeDecimalInput(event.target.value)
+                  )
+                }
+                placeholder="e.g. 5000.00"
+                className="h-11 border-[#E5E7EB] bg-white"
+              />
+            </CreditFormField>
+            <CreditFormField label="Seasonal Peaks">
+              <Select
+                value=""
+                onValueChange={(value) => {
+                  if (requestedTermsForm.seasonalPeaks.includes(value)) return;
+                  if (requestedTermsForm.seasonalPeaks.length >= 12) return;
+                  updateRequestedTermsField('seasonalPeaks', [
+                    ...requestedTermsForm.seasonalPeaks,
+                    value,
+                  ]);
+                }}
+              >
+                <SelectTrigger className="h-11 border-[#E5E7EB] bg-white text-gray-900">
+                  <SelectValue placeholder="Select month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SEASONAL_MONTH_OPTIONS.map((month) => (
+                    <SelectItem key={month} value={month}>
+                      {month}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {requestedTermsForm.seasonalPeaks.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {requestedTermsForm.seasonalPeaks.map((month) => (
+                    <button
+                      key={month}
+                      type="button"
+                      onClick={() =>
+                        updateRequestedTermsField(
+                          'seasonalPeaks',
+                          requestedTermsForm.seasonalPeaks.filter((item) => item !== month)
+                        )
+                      }
+                      className="rounded-full border border-[#E5E7EB] bg-[#FAFAFA] px-3 py-1 text-xs text-[#3F3F46]"
+                    >
+                      {month} ×
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </CreditFormField>
+            <div className="md:col-span-2">
+              <CreditFormField label="Justification / Notes">
+                <textarea
+                  value={requestedTermsForm.justification}
+                  onChange={(event) =>
+                    updateRequestedTermsField('justification', event.target.value.slice(0, 2000))
+                  }
+                  placeholder="Provide any additional context supporting the credit request..."
+                  className="min-h-[120px] w-full rounded-md border border-[#E5E7EB] bg-white p-3 text-sm text-[#18181B] outline-none focus:border-[#C63131]"
+                />
+                <Typography variant="caption" color="muted" className="text-xs text-[#71717A]">
+                  {requestedTermsForm.justification.length} / 2000 Max characters
+                </Typography>
+              </CreditFormField>
+            </div>
+          </div>
+        </CreditFormStepPanel>
+      ) : (
+        <CreditFormStepPanel>
+          <CreditFormStepHeader
+            title="Declarations & Consent"
+            description="The application cannot be submitted without accepting all required declarations."
+          />
+          <div className="space-y-5 p-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <CreditFormField
+                label="Director / Authorised Signatory Name"
+                required
+                error={declarationsErrors.signatoryName}
+              >
+                <Input
+                  value={declarationsForm.signatoryName}
+                  onChange={(event) => updateDeclarationsField('signatoryName', event.target.value)}
+                  placeholder="e.g. Michael Brown"
+                  className="h-11 border-[#E5E7EB] bg-white"
+                />
+              </CreditFormField>
+              <CreditFormField
+                label="Position / Title"
+                required
+                error={declarationsErrors.positionTitle}
+              >
+                <Input
+                  value={declarationsForm.positionTitle}
+                  onChange={(event) => updateDeclarationsField('positionTitle', event.target.value)}
+                  placeholder="e.g. Finance Director"
+                  className="h-11 border-[#E5E7EB] bg-white"
+                />
+              </CreditFormField>
+            </div>
+
+            <CreditFormField label="Declaration Date">
+              <Input
+                value={new Date().toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                })}
+                readOnly
+                className="h-11 border-[#E5E7EB] bg-[#FAFAFA] text-[#71717A]"
+              />
+            </CreditFormField>
+
+            <div className="space-y-6 pt-2">
+              <div>
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    checked={declarationsForm.consentCreditCheck}
+                    onChange={(event) =>
+                      updateDeclarationsField('consentCreditCheck', event.target.checked)
+                    }
+                  />
+                  <div>
+                    <Typography
+                      variant="label"
+                      color="text"
+                      className="text-base font-medium text-[#18181B]"
+                    >
+                      Consent: Credit Check <span className="text-[#EF4444]">*</span>
+                    </Typography>
+                    <Typography variant="body" color="muted" className="text-sm text-[#71717A]">
+                      I authorise SW Couriers to conduct credit checks and verify the information
+                      provided.
+                    </Typography>
+                  </div>
+                </div>
+                {declarationsErrors.consentCreditCheck ? (
+                  <Typography variant="caption" color="error" className="mt-1 block text-xs">
+                    {declarationsErrors.consentCreditCheck}
+                  </Typography>
                 ) : null}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-10 text-[#71717A] hover:bg-transparent hover:text-[#52525B]"
-                  onClick={() => void handleSaveDraft()}
-                  disabled={isSavingDraft || isSubmitting}
-                >
-                  {isSavingDraft ? 'Saving...' : 'Save as Draft'}
-                </Button>
-                <Button
-                  type="button"
-                  className="h-10 bg-[#C63131] text-white hover:bg-[#A82828]"
-                  onClick={handleSaveAndContinue}
-                  disabled={isSavingDraft || isSubmitting}
-                >
-                  {currentStep === 4
-                    ? isSubmitting
-                      ? 'Submitting...'
-                      : 'Submit Application'
-                    : 'Save & Continue'}
-                  {currentStep === 4 ? null : <ArrowRight className="size-4" />}
-                </Button>
+              </div>
+
+              <div>
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    checked={declarationsForm.consentTerms}
+                    onChange={(event) =>
+                      updateDeclarationsField('consentTerms', event.target.checked)
+                    }
+                  />
+                  <div>
+                    <Typography
+                      variant="label"
+                      color="text"
+                      className="text-base font-medium text-[#18181B]"
+                    >
+                      Consent: Terms &amp; Conditions <span className="text-[#EF4444]">*</span>
+                    </Typography>
+                    <Typography variant="body" color="muted" className="text-sm text-[#71717A]">
+                      I have read and agree to the SW Couriers Credit Terms and Conditions.
+                    </Typography>
+                  </div>
+                </div>
+                {declarationsErrors.consentTerms ? (
+                  <Typography variant="caption" color="error" className="mt-1 block text-xs">
+                    {declarationsErrors.consentTerms}
+                  </Typography>
+                ) : null}
+              </div>
+
+              <div>
+                <div className="flex items-start gap-2">
+                  <Checkbox
+                    checked={declarationsForm.consentDataProcessing}
+                    onChange={(event) =>
+                      updateDeclarationsField('consentDataProcessing', event.target.checked)
+                    }
+                  />
+                  <div>
+                    <Typography
+                      variant="label"
+                      color="text"
+                      className="text-base font-medium text-[#18181B]"
+                    >
+                      Consent: Data Processing <span className="text-[#EF4444]">*</span>
+                    </Typography>
+                    <Typography variant="body" color="muted" className="text-sm text-[#71717A]">
+                      I consent to SW Couriers processing the above data for the purpose of credit
+                      assessment.
+                    </Typography>
+                  </div>
+                </div>
+                {declarationsErrors.consentDataProcessing ? (
+                  <Typography variant="caption" color="error" className="mt-1 block text-xs">
+                    {declarationsErrors.consentDataProcessing}
+                  </Typography>
+                ) : null}
               </div>
             </div>
-          </section>
-        </div>
-      </div>
+          </div>
+        </CreditFormStepPanel>
+      )}
 
       <Dialog open={creditAccountExistsDialogOpen} onOpenChange={setCreditAccountExistsDialogOpen}>
         <DialogContent className={CREDIT_ACCOUNT_EXISTS_MODAL_WRAPPER} hideCloseButton>
@@ -1841,116 +1706,7 @@ export default function CreditLimitIncreaseFormPage(): React.JSX.Element {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-function CreditFormStepPanel({ children }: { children: React.ReactNode }): React.JSX.Element {
-  return <div className={CREDIT_FORM_STEP_PANEL_CLASS}>{children}</div>;
-}
-
-function CreditFormStepHeader({
-  title,
-  description,
-  action,
-}: {
-  title: string;
-  description: string;
-  action?: React.ReactNode;
-}): React.JSX.Element {
-  return (
-    <div
-      className={cn(
-        'flex flex-wrap items-start justify-between gap-3 border-b border-[#E5E7EB] py-4',
-        CREDIT_FORM_SECTION_PAD,
-        action && 'gap-4'
-      )}
-    >
-      <div className="min-w-0 space-y-1">
-        <Typography variant="h2" className={CREDIT_FORM_STEP_TITLE_CLASS}>
-          {title}
-        </Typography>
-        <Typography variant="body" className={CREDIT_FORM_STEP_DESC_CLASS}>
-          {description}
-        </Typography>
-      </div>
-      {action}
-    </div>
-  );
-}
-
-function ProfileReadOnlySelect({
-  displayValue,
-  placeholder,
-  loading,
-}: {
-  displayValue: string;
-  placeholder: string;
-  loading?: boolean;
-}): React.JSX.Element {
-  const text = loading ? 'Loading…' : displayValue || placeholder;
-  return (
-    <div
-      className={cn(
-        READ_ONLY_INPUT_CLASS,
-        'flex h-11 w-full cursor-default items-center justify-between gap-2 px-3',
-        !loading && !displayValue && 'text-[#A1A1AA]'
-      )}
-      aria-readonly
-    >
-      <span className="truncate text-sm">{text}</span>
-      <ChevronDown className="size-4 shrink-0 text-[#A1A1AA]" aria-hidden />
-    </div>
-  );
-}
-
-function ProfileReadOnlyDate({
-  value,
-  loading,
-}: {
-  value: string;
-  loading?: boolean;
-}): React.JSX.Element {
-  return (
-    <div className="relative">
-      <Input
-        readOnly
-        value={loading ? '' : value}
-        placeholder={loading ? 'Loading…' : '—'}
-        className={cn(READ_ONLY_INPUT_CLASS, 'pr-10')}
-      />
-      <CalendarIcon
-        className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[#A1A1AA]"
-        aria-hidden
-      />
-    </div>
-  );
-}
-
-function Field({
-  label,
-  required,
-  error,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  error?: string;
-  children: React.ReactNode;
-}): React.JSX.Element {
-  return (
-    <div className="space-y-2">
-      <Typography variant="label" color="text" className="text-sm font-medium text-[#18181B]">
-        {label}
-        {required ? <span className="ml-1 text-[#EF4444]">*</span> : null}
-      </Typography>
-      {children}
-      {error ? (
-        <Typography variant="caption" color="error" className="text-xs">
-          {error}
-        </Typography>
-      ) : null}
-    </div>
+    </CreditApplicationFormShell>
   );
 }
 

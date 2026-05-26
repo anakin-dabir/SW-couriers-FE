@@ -1,4 +1,3 @@
-import type React from 'react';
 import Barcode from 'react-barcode';
 import { QRCodeSVG } from 'qrcode.react';
 import { Download, Printer } from 'lucide-react';
@@ -22,17 +21,12 @@ export interface PrintableLabelCardProps {
   volumeText: string;
   returnAddressText: string;
   showActions?: boolean;
-  cardRef?: React.Ref<HTMLDivElement>;
   onDownloadClick?: () => void;
   onPrintClick?: () => void;
 }
 
 const LABEL_DIVIDER = 'h-px w-full shrink-0 bg-black';
 
-/**
- * Printable shipping label — layout tuned to match the master label reference (PDF via html2canvas).
- * Uses system sans-serif stack for reliable print/PDF rendering.
- */
 export default function PrintableLabelCard({
   verticalBarcodeWidth,
   trackingId,
@@ -49,17 +43,12 @@ export default function PrintableLabelCard({
   volumeText,
   returnAddressText,
   showActions = false,
-  cardRef,
   onDownloadClick,
   onPrintClick,
 }: PrintableLabelCardProps): React.JSX.Element {
   return (
     <div className="w-full max-w-[492px] border border-dashed border-[#8E8E8E] p-4">
-      <div
-        ref={cardRef}
-        style={{ fontFamily: 'Arial, Helvetica, "Segoe UI", sans-serif' }}
-        className="overflow-hidden border-[3px] border-black bg-white text-black antialiased"
-      >
+      <div className="overflow-hidden border-[3px] border-black bg-white text-black antialiased">
         {/* Row 1 — logo + site */}
         <div className="flex items-start justify-between gap-4 px-5 py-5">
           <img

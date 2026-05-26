@@ -1,6 +1,5 @@
 import type React from 'react';
-import type { jsPDF } from 'jspdf';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { AlertCircle, ArrowLeft, Download, Layers, Plus, Printer, ReceiptText } from 'lucide-react';
 import Typography from '@/components/atoms/Typography';
 import { Button } from '@/components/atoms/Button';
@@ -33,6 +32,14 @@ import {
   PICKUP_CONFIRMATION_PICKUP_ADDRESS_LABEL,
 } from '@/lib/data';
 import { Badge } from '@/components/atoms/badge';
+import {
+  downloadBlob,
+  type LabelSpec,
+  labelPdfFileName,
+  packageLabelsPdfFileName,
+  printBlob,
+  renderLabelPdfBlob,
+} from '@/lib/labelPdf';
 import PrintableLabelCard from './PrintableLabelCard';
 import PickupInvoiceModal from './PickupInvoiceModal';
 
@@ -79,8 +86,6 @@ export default function PickupConfirmationStep({
 }: PickupConfirmationStepProps): React.JSX.Element {
   const [copied, setCopied] = useState(false);
   const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
-  const masterCardRef = useRef<HTMLDivElement | null>(null);
-  const packageCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const bookingId = useMemo(
     () => bookingIdPlain(confirmation.orderIdDisplay),
@@ -110,131 +115,119 @@ export default function PickupConfirmationStep({
     }
   }, [confirmation.orderIdDisplay]);
 
-  const createPdfFromElement = useCallback(async (element: HTMLDivElement): Promise<jsPDF> => {
-    const [{ default: html2canvas }, { default: JsPDF }] = await Promise.all([
-      import('html2canvas'),
-      import('jspdf'),
-    ]);
+  const masterLabelSpec = useMemo<LabelSpec>(
+    () => ({
+      id: confirmation.masterLabelCode,
+      labelType: 'master',
+      trackingId: bookingId,
+      orderIdText: bookingId,
+      qrValue: confirmation.masterQrValue,
+      barcodeValue: confirmation.masterBarcodeValue,
+      rightHeaderText: '',
+      primaryTitle: PICKUP_CONFIRMATION_PICKUP_ADDRESS_LABEL,
+      primaryAddress: confirmation.pickupAddress,
+      packageIdText: `Master Label: ${confirmation.masterLabelCode}`,
+      deliveryStopsText: confirmation.deliveryStops,
+      totalPackagesText: confirmation.totalPackagesCount,
+      weightText: confirmation.totalWeight,
+      dimensionsText: masterDimensions,
+      volumeText: confirmation.totalVolume,
+      returnAddressText: confirmation.returnAddress,
+    }),
+    [bookingId, confirmation, masterDimensions]
+  );
 
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      backgroundColor: '#ffffff',
-      useCORS: true,
-    });
-    const imageData = canvas.toDataURL('image/png');
-    const JsPDFCtor = JsPDF as unknown as new (
-      ...args: ConstructorParameters<typeof jsPDF>
-    ) => jsPDF;
-    const pdf = new JsPDFCtor('p', 'mm', 'a4');
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = pageWidth - 16;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    const y = Math.max(8, (pageHeight - imgHeight) / 2);
-    pdf.addImage(imageData, 'PNG', 8, y, imgWidth, imgHeight);
-    return pdf;
-  }, []);
+  const packageLabelSpecs = useMemo<LabelSpec[]>(
+    () =>
+      confirmation.packages.map((pkg) => ({
+        id: pkg.id,
+        labelType: 'package',
+        trackingId: bookingIdPlain(pkg.trackingIdDisplay),
+        qrValue: pkg.qrValue,
+        barcodeValue: pkg.barcodeValue,
+        rightHeaderText: pkg.deliverySla,
+        primaryTitle: 'FROM:',
+        primaryAddress: pkg.fromAddress,
+        secondaryTitle: 'TO:',
+        secondaryAddress: pkg.toAddress,
+        packageIdText: `Package ID: ${pkg.packageIdDisplay}`,
+        weightText: pkg.weight,
+        dimensionsText: pkg.dimensions,
+        volumeText: pkg.volume,
+        returnAddressText: confirmation.returnAddress,
+        signatureRequired: pkg.signatureRequiredValue.trim().toUpperCase() === 'YES',
+      })),
+    [confirmation.packages, confirmation.returnAddress]
+  );
 
-  const printPdf = useCallback((pdf: jsPDF, windowTitle: string): void => {
-    const blobUrl = pdf.output('bloburl');
-    const printWindow = window.open(blobUrl, '_blank');
-    if (!printWindow) {
-      return;
-    }
-    printWindow.document.title = windowTitle;
-    printWindow.onload = () => {
-      printWindow.focus();
-      printWindow.print();
-    };
-  }, []);
+  const packageSpecsById = useMemo(() => {
+    const map = new Map<string, LabelSpec>();
+    for (const spec of packageLabelSpecs) map.set(spec.id, spec);
+    return map;
+  }, [packageLabelSpecs]);
+
+  const packageIds = useMemo(
+    () => confirmation.packages.map((pkg) => pkg.id),
+    [confirmation.packages]
+  );
 
   const downloadMasterPdf = useCallback(async (): Promise<void> => {
-    if (!masterCardRef.current) return;
-    const pdf = await createPdfFromElement(masterCardRef.current);
-    pdf.save(`master-label-${bookingId}.pdf`);
+    const blob = await renderLabelPdfBlob([masterLabelSpec], {
+      title: confirmation.masterLabelCode,
+    });
+    if (!blob) return;
+    downloadBlob(blob, labelPdfFileName('master-label', confirmation.masterLabelCode));
     onDownloadMasterLabel();
-  }, [bookingId, createPdfFromElement, onDownloadMasterLabel]);
+  }, [confirmation.masterLabelCode, masterLabelSpec, onDownloadMasterLabel]);
 
   const printMasterPdf = useCallback(async (): Promise<void> => {
-    if (!masterCardRef.current) return;
-    const pdf = await createPdfFromElement(masterCardRef.current);
-    printPdf(pdf, `master-label-${bookingId}.pdf`);
+    const blob = await renderLabelPdfBlob([masterLabelSpec], {
+      title: confirmation.masterLabelCode,
+    });
+    if (!blob) return;
+    printBlob(blob, labelPdfFileName('master-label', confirmation.masterLabelCode));
     onPrintMasterLabel();
-  }, [bookingId, createPdfFromElement, onPrintMasterLabel, printPdf]);
+  }, [confirmation.masterLabelCode, masterLabelSpec, onPrintMasterLabel]);
 
   const downloadPackagePdf = useCallback(
     async (packageId: string): Promise<void> => {
-      const element = packageCardRefs.current[packageId];
-      if (!element) return;
-      const pdf = await createPdfFromElement(element);
-      pdf.save(`package-label-${packageId}.pdf`);
+      const spec = packageSpecsById.get(packageId);
+      if (!spec) return;
+      const blob = await renderLabelPdfBlob([spec], { title: packageId });
+      if (!blob) return;
+      downloadBlob(blob, labelPdfFileName('package-label', packageId));
       onDownloadPackageLabel(packageId);
     },
-    [createPdfFromElement, onDownloadPackageLabel]
+    [onDownloadPackageLabel, packageSpecsById]
   );
 
   const printPackagePdf = useCallback(
     async (packageId: string): Promise<void> => {
-      const element = packageCardRefs.current[packageId];
-      if (!element) return;
-      const pdf = await createPdfFromElement(element);
-      printPdf(pdf, `package-label-${packageId}.pdf`);
+      const spec = packageSpecsById.get(packageId);
+      if (!spec) return;
+      const blob = await renderLabelPdfBlob([spec], { title: packageId });
+      if (!blob) return;
+      printBlob(blob, labelPdfFileName('package-label', packageId));
       onPrintPackageLabel(packageId);
     },
-    [createPdfFromElement, onPrintPackageLabel, printPdf]
+    [onPrintPackageLabel, packageSpecsById]
   );
 
-  const createPdfForAllPackages = useCallback(async (): Promise<jsPDF | null> => {
-    const [{ default: html2canvas }, { default: JsPDF }] = await Promise.all([
-      import('html2canvas'),
-      import('jspdf'),
-    ]);
-
-    const JsPDFCtor = JsPDF as unknown as new (
-      ...args: ConstructorParameters<typeof jsPDF>
-    ) => jsPDF;
-    const pdf = new JsPDFCtor('p', 'mm', 'a4');
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    let hasPage = false;
-
-    for (const pkg of confirmation.packages) {
-      const element = packageCardRefs.current[pkg.id];
-      if (!element) continue;
-
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        backgroundColor: '#ffffff',
-        useCORS: true,
-      });
-      const imageData = canvas.toDataURL('image/png');
-      const imgWidth = pageWidth - 16;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      const y = Math.max(8, (pageHeight - imgHeight) / 2);
-
-      if (hasPage) {
-        pdf.addPage();
-      }
-      pdf.addImage(imageData, 'PNG', 8, y, imgWidth, imgHeight);
-      hasPage = true;
-    }
-
-    return hasPage ? pdf : null;
-  }, [confirmation.packages]);
-
   const downloadAllPackagePdfs = useCallback(async (): Promise<void> => {
-    const pdf = await createPdfForAllPackages();
-    if (!pdf) return;
-    pdf.save(`package-labels-${bookingId}.pdf`);
+    if (packageLabelSpecs.length === 0) return;
+    const blob = await renderLabelPdfBlob(packageLabelSpecs, { title: 'Package Labels' });
+    if (!blob) return;
+    downloadBlob(blob, packageLabelsPdfFileName(packageIds));
     onDownloadAllPackageLabels();
-  }, [bookingId, createPdfForAllPackages, onDownloadAllPackageLabels]);
+  }, [onDownloadAllPackageLabels, packageIds, packageLabelSpecs]);
 
   const printAllPackagePdfs = useCallback(async (): Promise<void> => {
-    const pdf = await createPdfForAllPackages();
-    if (!pdf) return;
-    printPdf(pdf, `package-labels-${bookingId}.pdf`);
+    if (packageLabelSpecs.length === 0) return;
+    const blob = await renderLabelPdfBlob(packageLabelSpecs, { title: 'Package Labels' });
+    if (!blob) return;
+    printBlob(blob, packageLabelsPdfFileName(packageIds));
     onPrintAllPackageLabels();
-  }, [bookingId, createPdfForAllPackages, onPrintAllPackageLabels, printPdf]);
+  }, [onPrintAllPackageLabels, packageIds, packageLabelSpecs]);
 
   return (
     <div
@@ -381,7 +374,6 @@ export default function PickupConfirmationStep({
 
         <div className="w-full min-w-0 flex-1 lg:max-w-[492px]">
           <PrintableLabelCard
-            cardRef={masterCardRef}
             verticalBarcodeWidth={0.8}
             trackingId={bookingId}
             qrValue={confirmation.masterQrValue}
@@ -445,9 +437,6 @@ export default function PickupConfirmationStep({
           {confirmation.packages.map((pkg) => (
             <PrintableLabelCard
               key={pkg.id}
-              cardRef={(element) => {
-                packageCardRefs.current[pkg.id] = element;
-              }}
               verticalBarcodeWidth={1}
               trackingId={bookingIdPlain(pkg.trackingIdDisplay)}
               qrValue={pkg.qrValue}

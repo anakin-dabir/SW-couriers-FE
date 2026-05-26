@@ -17,15 +17,6 @@ const BARCODE_HEIGHT = 72;
 const VERTICAL_BARCODE_SLOT_HEIGHT = 252;
 const QR_CODE_SIZE = 94;
 
-function assignForwardedRef<T>(ref: React.Ref<T> | undefined, value: T | null): void {
-  if (!ref) return;
-  if (typeof ref === 'function') {
-    ref(value);
-    return;
-  }
-  ref.current = value;
-}
-
 function BarcodeMark({ value }: { value: string }): React.JSX.Element {
   return (
     <Barcode
@@ -87,7 +78,6 @@ interface PrintableLabelCardProps {
   totalPackagesText?: string;
   signatureRequired?: boolean;
   showActions?: boolean;
-  cardRef?: React.Ref<HTMLDivElement>;
   onDownloadClick?: () => void;
   onPrintClick?: () => void;
   downloadPending?: boolean;
@@ -119,7 +109,6 @@ export default function PrintableLabelCard({
   totalPackagesText,
   signatureRequired = true,
   showActions = false,
-  cardRef,
   onDownloadClick,
   onPrintClick,
   downloadPending = false,
@@ -349,24 +338,6 @@ export default function PrintableLabelCard({
         >
           {renderLabelContent(true)}
         </div>
-      </div>
-
-      <div
-        ref={(element) => assignForwardedRef(cardRef, element)}
-        aria-hidden="true"
-        className="overflow-hidden rounded-[2px] bg-white"
-        style={{
-          position: 'fixed',
-          left: '-10000px',
-          top: '0',
-          width: `${LABEL_WIDTH_PX}px`,
-          height: `${LABEL_HEIGHT_PX}px`,
-          pointerEvents: 'none',
-          fontSize: '16px',
-          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-        }}
-      >
-        {renderLabelContent(false)}
       </div>
 
       {showActions ? (

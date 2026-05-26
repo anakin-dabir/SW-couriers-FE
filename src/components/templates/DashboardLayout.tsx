@@ -6,16 +6,20 @@ import { SidebarProvider, SidebarInset } from '@/components/organisms/sidebar';
 import AppSidebar from '@/components/organisms/AppSidebar';
 import DashboardHeader from '@/components/organisms/DashboardHeader';
 import { clearCredentials, selectUser } from '@/store/slices/authSlice';
+import { cn } from '@/lib/utils';
 
 interface DashboardLayoutProps {
   children: ReactNode;
-  /** `flush` removes main padding so full-bleed shells (e.g. settings) own spacing. */
+  /** `flush` removes main padding so full-bleed shells own spacing and background. */
   mainVariant?: 'default' | 'flush';
+  /** Background for flush main (e.g. credit application grey canvas). */
+  flushMainClassName?: string;
 }
 
 const DashboardLayout = memo(function DashboardLayout({
   children,
   mainVariant = 'default',
+  flushMainClassName,
 }: DashboardLayoutProps) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -42,11 +46,12 @@ const DashboardLayout = memo(function DashboardLayout({
         <main
           id="main-content"
           role="main"
-          className={
+          className={cn(
             mainVariant === 'flush'
-              ? 'flex min-h-0 flex-1 flex-col overflow-auto p-0'
-              : 'flex-1 overflow-auto p-6'
-          }
+              ? 'flex min-h-0 min-w-0 flex-1 flex-col overflow-auto p-0'
+              : 'flex-1 overflow-auto bg-background p-6',
+            mainVariant === 'flush' && (flushMainClassName ?? 'bg-[#F9FAFB]')
+          )}
         >
           {children}
         </main>
