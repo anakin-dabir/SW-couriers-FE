@@ -17,11 +17,23 @@ declare module 'braintree-web' {
   export interface HostedFieldState {
     isValid: boolean;
     isEmpty: boolean;
+    isPotentiallyValid: boolean;
+    isFocused?: boolean;
   }
 
   export interface HostedFieldsState {
     fields: Record<string, HostedFieldState | undefined>;
+    emittedBy?: string;
   }
+
+  export type HostedFieldEvents =
+    | 'validityChange'
+    | 'blur'
+    | 'focus'
+    | 'inputSubmitRequest'
+    | 'cardTypeChange'
+    | 'empty'
+    | 'notEmpty';
 
   export interface HostedFieldsTokenizePayload {
     nonce: string;
@@ -36,6 +48,7 @@ declare module 'braintree-web' {
     getState(): HostedFieldsState;
     tokenize(): Promise<HostedFieldsTokenizePayload>;
     teardown(): Promise<void>;
+    on(event: HostedFieldEvents, handler: (state: HostedFieldsState) => void): void;
   }
 
   export interface HostedFieldsCreateOptions {
@@ -47,6 +60,7 @@ declare module 'braintree-web' {
         selector: string;
         placeholder?: string;
         formatInput?: boolean;
+        maxLength?: number;
       }
     >;
   }

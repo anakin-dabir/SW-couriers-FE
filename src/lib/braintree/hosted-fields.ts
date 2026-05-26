@@ -46,15 +46,18 @@ export function createHostedFields(
         selector: `#${ids.number}`,
         placeholder: '•••• •••• •••• ••••',
         formatInput: true,
+        maxLength: 19,
       },
       expirationDate: {
         selector: `#${ids.expiration}`,
         placeholder: 'MM / YY',
         formatInput: true,
+        maxLength: 5,
       },
       cvv: {
         selector: `#${ids.cvv}`,
         placeholder: '•••',
+        maxLength: 4,
       },
     },
   });

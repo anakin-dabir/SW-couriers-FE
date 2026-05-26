@@ -18,4 +18,4 @@ export const hostedFieldStyles = {
 
 /** Tailwind-friendly wrapper for Hosted Fields mount nodes */
 export const hostedFieldContainerClass =
-  'relative flex h-10 w-full items-center rounded-md border border-[var(--color-form-border-light)] bg-[var(--color-form-surface)] px-3 py-2 transition-[box-shadow,border-color]';
+  'relative flex h-10 w-full items-center rounded-md border border-[var(--color-form-border-light)] bg-white px-3 py-2 transition-[box-shadow,border-color]';
